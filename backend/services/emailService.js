@@ -1,18 +1,40 @@
 const nodemailer = require('nodemailer');
+const dns = require('dns');
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD,
-  },
-});
+// Prefer IPv4 over IPv6 DNS resolution to fix ENETUNREACH on Render / Heroku / Cloud containers
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder('ipv4first');
+}
+
+const getTransporter = () => {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+    console.warn('[EMAIL] Skipping email dispatch: EMAIL_USER or EMAIL_PASSWORD env vars not set.');
+    return null;
+  }
+
+  return nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    family: 4, // Force IPv4 connection to prevent ENETUNREACH on Render
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASSWORD,
+    },
+    connectionTimeout: 10000,
+    greetingTimeout: 5000,
+    socketTimeout: 10000,
+  });
+};
 
 /**
  * Send status update email to citizen
  */
 const sendStatusEmail = async ({ to, name, complaintId, status, issueType, deadline }) => {
   if (!to) return; // skip if citizen has no email
+
+  const transporter = getTransporter();
+  if (!transporter) return;
 
   const statusColor = {
     Pending: '#F59E0B',
@@ -21,12 +43,12 @@ const sendStatusEmail = async ({ to, name, complaintId, status, issueType, deadl
   }[status] || '#64748B';
 
   const mailOptions = {
-    from: `"CivicLink Notifications" <${process.env.EMAIL_USER}>`,
+    from: `"Nagarik Smart City" <${process.env.EMAIL_USER}>`,
     to,
-    subject: `[CivicLink] Your complaint ${complaintId} is now ${status}`,
+    subject: `[Nagarik] Your complaint ${complaintId} is now ${status}`,
     html: `
       <div style="font-family: 'DM Sans', sans-serif; background: #0B1120; color: #CBD5E1; padding: 32px; border-radius: 12px; max-width: 480px; margin: 0 auto;">
-        <h1 style="font-size: 24px; font-weight: 800; color: #ffffff; margin: 0 0 8px;">CivicLink</h1>
+        <h1 style="font-size: 24px; font-weight: 800; color: #ffffff; margin: 0 0 8px;">Nagarik</h1>
         <p style="color: #64748B; font-size: 12px; margin: 0 0 24px;">Smart City Grievance Portal</p>
         <div style="background: #111827; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
           <p style="margin: 0 0 4px; font-size: 12px; color: #64748B; text-transform: uppercase; letter-spacing: 1px;">Status Update</p>
@@ -37,16 +59,16 @@ const sendStatusEmail = async ({ to, name, complaintId, status, issueType, deadl
         <p style="margin: 0 0 24px; color: #94a3b8;">Your complaint <strong style="color: #F59E0B;">${complaintId}</strong> has been updated. Our municipal team ${status === 'In Progress' ? 'is actively working on it' : status === 'Resolved' ? 'has resolved this issue' : 'has received your report'}.</p>
         ${deadline ? `<p style="color: #64748B; font-size: 12px;">Expected resolution by: <strong style="color: #ffffff;">${new Date(deadline).toLocaleString()}</strong></p>` : ''}
         <hr style="border: none; border-top: 1px solid #1a2235; margin: 24px 0;" />
-        <p style="color: #475569; font-size: 11px;">This is an automated notification from CivicLink. Do not reply to this email.</p>
+        <p style="color: #475569; font-size: 11px;">This is an automated notification from Nagarik. Do not reply to this email.</p>
       </div>
     `,
   };
 
   try {
     await transporter.sendMail(mailOptions);
+    console.log(`[EMAIL] Status update email sent to ${to} for complaint ${complaintId}`);
   } catch (err) {
     console.error('[EMAIL] Failed to send status email:', err.message);
-    // Non-fatal: log and continue
   }
 };
 
@@ -56,10 +78,13 @@ const sendStatusEmail = async ({ to, name, complaintId, status, issueType, deadl
 const sendSLABreachEmail = async ({ adminEmail, complaintId, issueType, department, deadline }) => {
   if (!adminEmail) return;
 
+  const transporter = getTransporter();
+  if (!transporter) return;
+
   const mailOptions = {
-    from: `"CivicLink SLA Monitor" <${process.env.EMAIL_USER}>`,
+    from: `"Nagarik SLA Monitor" <${process.env.EMAIL_USER}>`,
     to: adminEmail,
-    subject: `⚠️ [CivicLink SLA BREACH] Complaint ${complaintId} overdue`,
+    subject: `⚠️ [Nagarik SLA BREACH] Complaint ${complaintId} overdue`,
     html: `
       <div style="font-family: sans-serif; background: #0B1120; color: #CBD5E1; padding: 32px; border-radius: 12px; max-width: 480px; margin: 0 auto;">
         <h1 style="color: #EF4444; margin: 0 0 16px;">⚠️ SLA Breach Detected</h1>
@@ -73,6 +98,7 @@ const sendSLABreachEmail = async ({ adminEmail, complaintId, issueType, departme
 
   try {
     await transporter.sendMail(mailOptions);
+    console.log(`[EMAIL] SLA breach email sent to ${adminEmail} for complaint ${complaintId}`);
   } catch (err) {
     console.error('[EMAIL] Failed to send SLA breach email:', err.message);
   }
