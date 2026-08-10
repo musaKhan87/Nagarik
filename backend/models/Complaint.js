@@ -4,7 +4,6 @@ const ComplaintSchema = new mongoose.Schema({
   citizenId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   issueType: { 
     type: String, 
-    enum: ['Broken Road', 'Garbage', 'Street Light', 'Waterlogging', 'Illegal Dumping', 'Other', 'Potholes & Roads', 'Garbage & Waste', 'Streetlights', 'Water Supply', 'Footpaths & Signals', 'Parks & Trees', 'Traffic & Parking', 'Sanitation & Drains'],
     required: true 
   },
   description: { type: String, required: true, maxlength: 1000 },
@@ -43,7 +42,15 @@ const ComplaintSchema = new mongoose.Schema({
   aiConfidence: { type: Number }
 }, { timestamps: true });
 
-// Setup 2dsphere index for geolocation lookup
+// Setup 2dsphere index for geospatial lookup
 ComplaintSchema.index({ location: '2dsphere' });
+ComplaintSchema.index({ 'location.coordinates': '2dsphere' });
 
-module.exports = mongoose.model('Complaint', ComplaintSchema);
+const Complaint = mongoose.model('Complaint', ComplaintSchema);
+
+// Auto-create indexes on DB connection
+Complaint.createIndexes().catch(err => {
+  console.warn('[MONGOOSE] Index creation warning:', err.message);
+});
+
+module.exports = Complaint;

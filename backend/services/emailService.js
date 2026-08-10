@@ -1,29 +1,48 @@
 const nodemailer = require('nodemailer');
 const dns = require('dns');
 
-// Prefer IPv4 over IPv6 DNS resolution to fix ENETUNREACH on Render / Heroku / Cloud containers
+// Force Node.js global DNS resolution to IPv4 first
 if (dns.setDefaultResultOrder) {
   dns.setDefaultResultOrder('ipv4first');
 }
 
+/**
+ * Custom DNS lookup function for Nodemailer that strictly resolves IPv4 addresses only.
+ * This completely prevents ENETUNREACH (2607:f8b0...) errors on Render / Heroku / Docker containers.
+ */
+const ipv4Lookup = (hostname, options, callback) => {
+  return dns.lookup(hostname, { family: 4 }, (err, address, family) => {
+    if (err) {
+      return callback(err);
+    }
+    callback(null, address, 4);
+  });
+};
+
 const getTransporter = () => {
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
-    console.warn('[EMAIL] Skipping email dispatch: EMAIL_USER or EMAIL_PASSWORD env vars not set.');
+    console.warn('[EMAIL] Skipping email dispatch: EMAIL_USER or EMAIL_PASSWORD env vars not configured on server.');
     return null;
   }
 
+  // Use Port 587 STARTTLS with strict IPv4 lookup (standard for Render / Cloud hosting)
   return nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
-    family: 4, // Force IPv4 connection to prevent ENETUNREACH on Render
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.SMTP_PORT || '587', 10),
+    secure: false, // false for 587 STARTTLS
+    requireTLS: true,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASSWORD,
     },
-    connectionTimeout: 10000,
+    lookup: ipv4Lookup, // Strictly force IPv4 resolution
+    tls: {
+      rejectUnauthorized: false,
+      servername: 'smtp.gmail.com'
+    },
+    connectionTimeout: 8000,
     greetingTimeout: 5000,
-    socketTimeout: 10000,
+    socketTimeout: 8000,
   });
 };
 
@@ -31,7 +50,7 @@ const getTransporter = () => {
  * Send status update email to citizen
  */
 const sendStatusEmail = async ({ to, name, complaintId, status, issueType, deadline }) => {
-  if (!to) return; // skip if citizen has no email
+  if (!to) return;
 
   const transporter = getTransporter();
   if (!transporter) return;
@@ -66,9 +85,9 @@ const sendStatusEmail = async ({ to, name, complaintId, status, issueType, deadl
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log(`[EMAIL] Status update email sent to ${to} for complaint ${complaintId}`);
+    console.log(`[EMAIL] Status update email successfully sent via IPv4 to ${to} for complaint ${complaintId}`);
   } catch (err) {
-    console.error('[EMAIL] Failed to send status email:', err.message);
+    console.error('[EMAIL] Failed to send status email (non-fatal):', err.message);
   }
 };
 
@@ -98,9 +117,9 @@ const sendSLABreachEmail = async ({ adminEmail, complaintId, issueType, departme
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log(`[EMAIL] SLA breach email sent to ${adminEmail} for complaint ${complaintId}`);
+    console.log(`[EMAIL] SLA breach alert email successfully sent via IPv4 to ${adminEmail} for complaint ${complaintId}`);
   } catch (err) {
-    console.error('[EMAIL] Failed to send SLA breach email:', err.message);
+    console.error('[EMAIL] Failed to send SLA breach email (non-fatal):', err.message);
   }
 };
 
