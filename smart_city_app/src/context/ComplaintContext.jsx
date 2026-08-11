@@ -64,11 +64,29 @@ export function ComplaintProvider({ children }) {
   };
 
   const upvoteComplaint = async (id) => {
+    // Optimistic 0ms local state update
+    const currentUserId = currentUser?._id || currentUser?.id;
+    setComplaints(prev => prev.map(c => {
+      if (c._id === id) {
+        const alreadyUpvoted = c.upvotes?.some(u => u.userId === currentUserId || u.userId?.toString() === currentUserId?.toString());
+        if (alreadyUpvoted) return c;
+        const newCount = (c.upvoteCount || 0) + 1;
+        const newPriority = newCount >= 10 ? 'Critical' : c.priority;
+        return {
+          ...c,
+          upvoteCount: newCount,
+          priority: newPriority,
+          upvotes: [...(c.upvotes || []), { userId: currentUserId }]
+        };
+      }
+      return c;
+    }));
+
     try {
       await api.put(`/complaints/${id}/upvote`);
-      await fetchComplaints();
       return { success: true };
     } catch (error) {
+      console.error('Background upvote sync notice:', error);
       return {
         success: false,
         message: error.response?.data?.message || 'Upvote failed'

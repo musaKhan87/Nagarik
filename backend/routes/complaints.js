@@ -65,7 +65,7 @@ router.post('/', verifyToken, async (req, res, next) => {
               $maxDistance: 100, // 100 metres radius
             },
           },
-        });
+        }).select('issueType description photo location upvotes upvoteCount priority status createdAt');
       } catch (geoErr) {
         // Fallback if 2dsphere index is still building on MongoDB Atlas
         console.warn('[GEO INDEX FALLBACK] Using Haversine distance calculation:', geoErr.message);
@@ -73,7 +73,7 @@ router.post('/', verifyToken, async (req, res, next) => {
           issueType,
           status: { $nin: ['Resolved', 'Closed'] },
           createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-        });
+        }).select('issueType description photo location upvotes upvoteCount priority status createdAt');
 
         const haversineMeters = (lat1, lon1, lat2, lon2) => {
           const R = 6371e3; // Earth radius in metres
@@ -174,6 +174,18 @@ router.post('/', verifyToken, async (req, res, next) => {
 });
 
 // ───────────────────────────────────────────────
+// GET /api/complaints/feed — Community Upvote Feed
+// ───────────────────────────────────────────────
+router.get('/feed', async (req, res, next) => {
+  try {
+    const complaints = await Complaint.find().sort({ upvoteCount: -1, createdAt: -1 });
+    res.json(complaints);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ───────────────────────────────────────────────
 // GET /api/complaints/mine — Citizen's own list
 // ───────────────────────────────────────────────
 router.get('/mine', verifyToken, async (req, res, next) => {
@@ -209,7 +221,7 @@ router.get('/:id', verifyToken, async (req, res, next) => {
 // ───────────────────────────────────────────────
 router.put('/:id/upvote', verifyToken, async (req, res, next) => {
   try {
-    const complaint = await Complaint.findById(req.params.id);
+    const complaint = await Complaint.findById(req.params.id).select('upvotes upvoteCount priority status');
     if (!complaint) return res.status(404).json({ message: 'No complaint found.' });
 
     const alreadyUpvoted = complaint.upvotes.some(u => u.userId.toString() === req.user.userId);

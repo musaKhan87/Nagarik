@@ -158,8 +158,8 @@ export function ReportIssue() {
 
   const handleUpvoteDuplicate = async () => {
     if (duplicateComplaint) {
-      await upvoteComplaint(duplicateComplaint._id);
       setShowDuplicateModal(false);
+      upvoteComplaint(duplicateComplaint._id).catch(e => console.error('[UPVOTE ERR]:', e));
       navigate('/dashboard');
     }
   };

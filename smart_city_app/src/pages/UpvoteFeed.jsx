@@ -3,6 +3,7 @@ import { ThumbsUp, Search, MapPin, Sparkles, Filter, Flame, ShieldCheck, CheckCi
 import { useComplaints } from '../context/ComplaintContext';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
 export function UpvoteFeed() {
   const { complaints, upvoteComplaint, loading } = useComplaints();
@@ -168,19 +169,20 @@ export function UpvoteFeed() {
             />
           </div>
 
-          {/* Sort By Dropdown */}
+          {/* Custom Radix UI Glassmorphic Sort By Dropdown */}
           <div className="flex items-center gap-2 shrink-0">
             <Filter className="h-4 w-4 text-muted-foreground" />
             <span className="text-xs font-bold text-muted-foreground">Sort By:</span>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="rounded-xl border border-border bg-background px-3 py-2.5 text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition cursor-pointer"
-            >
-              <option value="most_upvoted">🔥 Most Upvoted</option>
-              <option value="newest">🕒 Newest First</option>
-              <option value="priority">⚡ Highest SLA Priority</option>
-            </select>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-48 h-10 rounded-xl border-border bg-background text-xs font-bold text-foreground">
+                <SelectValue placeholder="Sort Order" />
+              </SelectTrigger>
+              <SelectContent className="rounded-2xl border-border bg-card shadow-2xl p-1">
+                <SelectItem value="most_upvoted" className="rounded-xl text-xs font-bold py-2.5 cursor-pointer">🔥 Most Upvoted</SelectItem>
+                <SelectItem value="newest" className="rounded-xl text-xs font-bold py-2.5 cursor-pointer">🕒 Newest First</SelectItem>
+                <SelectItem value="priority" className="rounded-xl text-xs font-bold py-2.5 cursor-pointer">⚡ Highest SLA Priority</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -290,27 +292,31 @@ export function UpvoteFeed() {
                     )}
                   </div>
 
-                  {/* PROMINENT HERO UPVOTE BUTTON */}
+                  {/* PROMINENT UPVOTE BUTTON WITH DISTINCT ACTIVE/INACTIVE COLORING */}
                   <div className="mt-6 pt-4 border-t border-border/60">
                     <button
                       type="button"
                       onClick={(e) => handleUpvote(e, c._id)}
                       disabled={isUpvoting || isResolved}
-                      className={`w-full flex items-center justify-center gap-2.5 rounded-2xl py-3 px-4 text-xs font-bold transition-all duration-200 shadow-md ${
+                      className={`w-full flex items-center justify-center gap-2 rounded-2xl py-3 px-4 text-xs font-bold transition-all duration-300 ${
                         isResolved
-                          ? "bg-secondary text-muted-foreground cursor-not-allowed opacity-60"
+                          ? "bg-secondary text-muted-foreground border border-border cursor-not-allowed opacity-60"
                           : hasUserUpvoted
-                          ? "bg-emerald-600/15 border border-emerald-500/40 text-emerald-600 hover:bg-emerald-600 hover:text-white"
-                          : "bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 shadow-glow"
+                          ? "bg-emerald-600 text-white font-extrabold shadow-glow border border-emerald-400/40 ring-2 ring-emerald-500/20"
+                          : "bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 shadow-elev"
                       }`}
                     >
-                      <ThumbsUp className={`h-4 w-4 ${isUpvoting ? "animate-bounce" : ""}`} />
+                      {hasUserUpvoted ? (
+                        <CheckCircle2 className="h-4 w-4 text-white shrink-0" />
+                      ) : (
+                        <ThumbsUp className={`h-4 w-4 shrink-0 ${isUpvoting ? "animate-bounce" : ""}`} />
+                      )}
                       <span>
                         {isResolved
-                          ? "Issue Resolved"
+                          ? `Resolved (${upvoteCount})`
                           : hasUserUpvoted
-                          ? `Upvoted (${upvoteCount}) • Boost Active!`
-                          : `Upvote & Boost Urgency (${upvoteCount})`}
+                          ? `✓ Upvoted (${upvoteCount}) · Priority Escalated`
+                          : `Upvote Issue ⬆ (${upvoteCount})`}
                       </span>
                     </button>
                   </div>
