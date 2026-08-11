@@ -87,8 +87,8 @@ export function Home() {
               </div>
             </div>
 
-            {/* Phone / preview mock */}
-            <div className="relative mx-auto w-full max-w-md lg:max-w-none">
+            {/* Phone / preview mock (Visible on Desktop >= 1024px) */}
+            <div className="hidden lg:block relative mx-auto w-full max-w-md lg:max-w-none">
               <div className="animate-float relative rounded-[2rem] border border-border bg-card p-2 shadow-glow">
                 <div className="rounded-[1.65rem] bg-hero p-6 text-white">
                   <div className="flex items-center justify-between text-xs opacity-90">
@@ -140,33 +140,57 @@ export function Home() {
       </section>
 
       {/* CATEGORIES */}
-      <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
+      <section className="mx-auto max-w-7xl px-4 py-10 sm:py-20 sm:px-6">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary/60 px-3 py-1 text-xs text-muted-foreground mb-3">
               <Sparkles className="h-3.5 w-3.5 text-primary" />
               <span>Instant AI Auto-Routing & Live SLA Monitoring</span>
             </div>
-            <h2 className="font-display text-3xl sm:text-4xl text-foreground">Almost anything that breaks the city.</h2>
-            <p className="mt-2 text-sm text-muted-foreground max-w-xl">
+            <h2 className="font-display text-2xl sm:text-4xl text-foreground">Almost anything that breaks the city.</h2>
+            <p className="mt-1.5 text-xs sm:text-sm text-muted-foreground max-w-xl">
               Select a category to report a civic grievance. Our vision AI auto-classifies your upload and routes directly to field teams.
             </p>
           </div>
-          <Button onClick={() => navigate('/report')} variant="outline" className="rounded-full gap-2 shrink-0">
+          <Button onClick={() => navigate('/report')} variant="outline" className="rounded-full gap-2 shrink-0 hidden sm:inline-flex">
             Report an issue <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
 
-        {/* Filter Pills */}
-        <div className="mt-8 flex flex-wrap gap-2">
+        {/* Segmented Category Filter Grid (Mobile Symmetrical 3x2 Grid) */}
+        <div className="mt-5 grid grid-cols-3 gap-1 rounded-2xl border border-border bg-card p-1.5 shadow-sm sm:hidden">
+          {[
+            { id: "All", label: "All" },
+            { id: "Infrastructure", label: "Infra" },
+            { id: "Sanitation", label: "Sanitation" },
+            { id: "Utilities", label: "Utilities" },
+            { id: "Safety", label: "Safety" },
+            { id: "Environment", label: "Enviro" },
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`rounded-xl py-2 text-center text-xs font-bold transition-all ${
+                activeTab === item.id
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Desktop & Tablet Filter Pills (Visible on Tablet & Desktop) */}
+        <div className="mt-6 hidden sm:flex flex-wrap items-center gap-2">
           {GROUPS.map((g) => (
             <button
               key={g}
               onClick={() => setActiveTab(g)}
-              className={`rounded-full px-4 py-2 text-xs font-medium transition ${
+              className={`rounded-full px-4 py-2 text-xs font-bold transition-all ${
                 activeTab === g
-                  ? "bg-primary text-primary-foreground shadow-sm font-semibold"
-                  : "border border-border bg-card/60 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  ? "bg-primary text-primary-foreground shadow-sm ring-2 ring-primary/20"
+                  : "border border-border/80 bg-card/80 text-muted-foreground hover:bg-secondary hover:text-foreground"
               }`}
             >
               {g === "All" ? "All Categories" : g}
@@ -174,45 +198,43 @@ export function Home() {
           ))}
         </div>
 
-        {/* Categories Grid */}
-        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Categories Grid (2 Columns on Mobile for Compact Layout!) */}
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {filteredCategories.map((c) => (
             <div
               key={c.name}
               onClick={() => navigate('/report')}
-              className={`group relative overflow-hidden rounded-3xl border border-border/80 bg-card/80 p-6 backdrop-blur-sm cursor-pointer transition-all duration-300 hover:-translate-y-1.5 shadow-elev ${c.glow} flex flex-col justify-between`}
+              className={`group relative overflow-hidden rounded-2xl sm:rounded-3xl border border-border/80 bg-card/80 p-4 sm:p-6 backdrop-blur-sm cursor-pointer transition-all duration-300 hover:-translate-y-1 shadow-sm ${c.glow} flex flex-col justify-between`}
             >
               <div className={`absolute inset-0 -z-10 bg-gradient-to-br ${c.color} opacity-70 group-hover:opacity-100 transition-opacity`} />
               
               <div>
                 <div className="flex items-center justify-between">
-                  <div className={`grid h-14 w-14 place-items-center rounded-2xl bg-card/90 border ${c.ring} text-3xl shadow-sm group-hover:scale-110 transition-transform duration-300`}>
+                  <div className={`grid h-10 w-10 sm:h-14 sm:w-14 place-items-center rounded-xl sm:rounded-2xl bg-card/90 border ${c.ring} text-2xl sm:text-3xl shadow-sm group-hover:scale-105 transition-transform duration-300`}>
                     {c.emoji}
                   </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <span className="rounded-full border border-border bg-secondary/80 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-                      {c.sla}
-                    </span>
-                  </div>
+                  <span className="rounded-full border border-border bg-secondary/80 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                    {c.sla}
+                  </span>
                 </div>
 
-                <h3 className="mt-5 font-display text-xl font-semibold text-foreground group-hover:text-primary transition-colors">
+                <h3 className="mt-3 sm:mt-5 font-display text-sm sm:text-xl font-bold text-foreground group-hover:text-primary transition-colors leading-tight">
                   {c.name}
                 </h3>
-                <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                <p className="mt-1 text-[11px] sm:text-xs text-muted-foreground leading-relaxed line-clamp-2">
                   {c.desc}
                 </p>
               </div>
 
               <div>
-                <div className="mt-4 flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium">
-                  <span className="h-1.5 w-1.5 rounded-full bg-success inline-block" />
-                  <span>{c.stat}</span>
+                <div className="mt-3 flex items-center gap-1.5 text-[10px] sm:text-[11px] text-muted-foreground font-medium">
+                  <span className="h-1.5 w-1.5 rounded-full bg-success inline-block shrink-0" />
+                  <span className="truncate">{c.stat}</span>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-medium text-primary">
-                  <span>File complaint</span>
-                  <ArrowRight className="h-3.5 w-3.5 transform group-hover:translate-x-1 transition-transform" />
+                <div className="mt-3 pt-2 border-t border-border/60 flex items-center justify-between text-[11px] sm:text-xs font-semibold text-primary">
+                  <span>Report</span>
+                  <ArrowRight className="h-3 w-3 sm:h-3.5 sm:w-3.5 transform group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
             </div>
@@ -220,103 +242,103 @@ export function Home() {
         </div>
       </section>
 
-      {/* HOW IT WORKS - CONNECTED CAPSULE ROADMAP FLOW (NO SQUARE BOXES) */}
-      <section className="bg-surface py-28 border-y border-border/80 relative overflow-hidden">
+      {/* HOW IT WORKS - CONNECTED CAPSULE ROADMAP FLOW */}
+      <section className="bg-surface py-10 sm:py-24 border-y border-border/80 relative overflow-hidden">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <div className="max-w-2xl mb-16">
-            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-1 text-xs text-primary font-semibold shadow-sm mb-3">
+          <div className="max-w-2xl mb-8 sm:mb-16">
+            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-1 text-xs text-primary font-semibold shadow-sm mb-2">
               <Sparkles className="h-3.5 w-3.5" />
               <span>3-Step Resolution Pipeline</span>
             </div>
-            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-foreground tracking-tight leading-tight">
+            <h2 className="font-display text-2xl sm:text-4xl md:text-5xl font-bold text-foreground tracking-tight leading-tight">
               Three taps between a broken thing<br className="hidden sm:inline" /> and someone accountable.
             </h2>
           </div>
 
           {/* Organic Flow Ribbon */}
-          <div className="grid gap-6 md:grid-cols-3 relative">
+          <div className="grid gap-4 sm:gap-6 md:grid-cols-3 relative">
             
-            {/* Step 01: Curved Asymmetrical Pill */}
-            <div className="group relative overflow-hidden rounded-[3rem] rounded-tr-none border border-border/90 bg-card p-8 shadow-2xl transition-all duration-300 hover:border-primary/50 hover:-translate-y-2 flex flex-col justify-between">
+            {/* Step 01 */}
+            <div className="group relative overflow-hidden rounded-3xl sm:rounded-[3rem] sm:rounded-tr-none border border-border/90 bg-card p-6 sm:p-8 shadow-sm transition-all duration-300 hover:border-primary/50 flex flex-col justify-between">
               <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent opacity-80" />
               <div>
                 <div className="flex items-center justify-between">
-                  <div className="grid h-16 w-16 place-items-center rounded-full bg-hero text-white font-display text-xl font-bold shadow-glow group-hover:scale-105 transition-transform">
+                  <div className="grid h-12 w-12 sm:h-16 sm:w-16 place-items-center rounded-full bg-hero text-white font-display text-lg sm:text-xl font-bold shadow-glow group-hover:scale-105 transition-transform">
                     01
                   </div>
-                  <div className="grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-primary border border-primary/20">
-                    <Camera className="h-6 w-6" />
+                  <div className="grid h-10 w-10 sm:h-12 sm:w-12 place-items-center rounded-full bg-primary/10 text-primary border border-primary/20">
+                    <Camera className="h-5 w-5 sm:h-6 sm:w-6" />
                   </div>
                 </div>
 
-                <h3 className="mt-8 font-display text-2xl font-bold text-foreground group-hover:text-primary transition-colors">
+                <h3 className="mt-5 sm:mt-8 font-display text-xl sm:text-2xl font-bold text-foreground group-hover:text-primary transition-colors">
                   Snap it
                 </h3>
-                <p className="mt-3 text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-muted-foreground leading-relaxed">
                   Open camera & capture the issue. Our AI vision detects category & severity instantly.
                 </p>
               </div>
 
-              <div className="mt-8 pt-4 border-t border-border/60 flex items-center justify-between">
-                <span className="rounded-full bg-primary/15 px-3 py-1 text-[11px] font-bold text-primary">
+              <div className="mt-6 sm:mt-8 pt-3 border-t border-border/60 flex items-center justify-between">
+                <span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-[10px] sm:text-[11px] font-bold text-primary">
                   AI Auto-Classify
                 </span>
                 <ArrowRight className="h-4 w-4 text-primary group-hover:translate-x-1 transition-transform" />
               </div>
             </div>
 
-            {/* Step 02: Reverse Asymmetrical Pill */}
-            <div className="group relative overflow-hidden rounded-[3rem] rounded-bl-none border border-border/90 bg-card p-8 shadow-2xl transition-all duration-300 hover:border-accent/50 hover:-translate-y-2 flex flex-col justify-between">
+            {/* Step 02 */}
+            <div className="group relative overflow-hidden rounded-3xl sm:rounded-[3rem] sm:rounded-bl-none border border-border/90 bg-card p-6 sm:p-8 shadow-sm transition-all duration-300 hover:border-accent/50 flex flex-col justify-between">
               <div className="absolute inset-0 -z-10 bg-gradient-to-br from-accent/20 via-accent/5 to-transparent opacity-80" />
               <div>
                 <div className="flex items-center justify-between">
-                  <div className="grid h-16 w-16 place-items-center rounded-full bg-hero text-white font-display text-xl font-bold shadow-glow group-hover:scale-105 transition-transform">
+                  <div className="grid h-12 w-12 sm:h-16 sm:w-16 place-items-center rounded-full bg-hero text-white font-display text-lg sm:text-xl font-bold shadow-glow group-hover:scale-105 transition-transform">
                     02
                   </div>
-                  <div className="grid h-12 w-12 place-items-center rounded-full bg-accent/10 text-accent border border-accent/20">
-                    <MapPin className="h-6 w-6" />
+                  <div className="grid h-10 w-10 sm:h-12 sm:w-12 place-items-center rounded-full bg-accent/10 text-accent border border-accent/20">
+                    <MapPin className="h-5 w-5 sm:h-6 sm:w-6" />
                   </div>
                 </div>
 
-                <h3 className="mt-8 font-display text-2xl font-bold text-foreground group-hover:text-accent transition-colors">
+                <h3 className="mt-5 sm:mt-8 font-display text-xl sm:text-2xl font-bold text-foreground group-hover:text-accent transition-colors">
                   Pin it
                 </h3>
-                <p className="mt-3 text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-muted-foreground leading-relaxed">
                   Device GPS automatically locks coordinates onto our GIS city spatial grid.
                 </p>
               </div>
 
-              <div className="mt-8 pt-4 border-t border-border/60 flex items-center justify-between">
-                <span className="rounded-full bg-accent/15 px-3 py-1 text-[11px] font-bold text-accent">
+              <div className="mt-6 sm:mt-8 pt-3 border-t border-border/60 flex items-center justify-between">
+                <span className="rounded-full bg-accent/15 px-2.5 py-0.5 text-[10px] sm:text-[11px] font-bold text-accent">
                   GIS Spatial Lock
                 </span>
                 <ArrowRight className="h-4 w-4 text-accent group-hover:translate-x-1 transition-transform" />
               </div>
             </div>
 
-            {/* Step 03: Full Pill Capsule */}
-            <div className="group relative overflow-hidden rounded-[3rem] rounded-tl-none border border-border/90 bg-card p-8 shadow-2xl transition-all duration-300 hover:border-emerald-500/50 hover:-translate-y-2 flex flex-col justify-between">
+            {/* Step 03 */}
+            <div className="group relative overflow-hidden rounded-3xl sm:rounded-[3rem] sm:rounded-tl-none border border-border/90 bg-card p-6 sm:p-8 shadow-sm transition-all duration-300 hover:border-emerald-500/50 flex flex-col justify-between">
               <div className="absolute inset-0 -z-10 bg-gradient-to-br from-emerald-500/20 via-emerald-500/5 to-transparent opacity-80" />
               <div>
                 <div className="flex items-center justify-between">
-                  <div className="grid h-16 w-16 place-items-center rounded-full bg-hero text-white font-display text-xl font-bold shadow-glow group-hover:scale-105 transition-transform">
+                  <div className="grid h-12 w-12 sm:h-16 sm:w-16 place-items-center rounded-full bg-hero text-white font-display text-lg sm:text-xl font-bold shadow-glow group-hover:scale-105 transition-transform">
                     03
                   </div>
-                  <div className="grid h-12 w-12 place-items-center rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                    <Bell className="h-6 w-6" />
+                  <div className="grid h-10 w-10 sm:h-12 sm:w-12 place-items-center rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                    <Bell className="h-5 w-5 sm:h-6 sm:w-6" />
                   </div>
                 </div>
 
-                <h3 className="mt-8 font-display text-2xl font-bold text-foreground group-hover:text-emerald-500 transition-colors">
+                <h3 className="mt-5 sm:mt-8 font-display text-xl sm:text-2xl font-bold text-foreground group-hover:text-emerald-500 transition-colors">
                   Track & Resolve
                 </h3>
-                <p className="mt-3 text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-muted-foreground leading-relaxed">
                   Receive live SMS & push status updates from Pending to Worker Resolved.
                 </p>
               </div>
 
-              <div className="mt-8 pt-4 border-t border-border/60 flex items-center justify-between">
-                <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-[11px] font-bold text-emerald-500">
+              <div className="mt-6 sm:mt-8 pt-3 border-t border-border/60 flex items-center justify-between">
+                <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[10px] sm:text-[11px] font-bold text-emerald-500">
                   SLA Guaranteed
                 </span>
                 <CheckCircle2 className="h-4 w-4 text-emerald-500" />
@@ -327,8 +349,8 @@ export function Home() {
         </div>
       </section>
 
-      {/* UNDER THE HOOD - ASYMMETRICAL CAPSULE & PILL CLUSTER (NO SQUARE BOXES) */}
-      <section className="mx-auto max-w-7xl px-4 py-28 sm:px-6">
+      {/* UNDER THE HOOD (Visible on Tablet & Desktop) */}
+      <section className="hidden sm:block mx-auto max-w-7xl px-4 py-10 sm:py-24 sm:px-6">
         <div className="max-w-2xl mb-16">
           <div className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary/60 px-3.5 py-1 text-xs text-primary font-semibold shadow-sm mb-3">
             <Sparkles className="h-3.5 w-3.5" />
@@ -424,25 +446,36 @@ export function Home() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="mx-auto max-w-7xl px-4 pb-24 sm:px-6">
-        <div className="relative overflow-hidden rounded-[3rem] bg-hero p-10 text-white sm:p-16">
-          <div className="absolute inset-0 grid-lines opacity-20" />
-          <div className="relative grid gap-8 md:grid-cols-[1.4fr_1fr] md:items-center">
-            <div>
-              <h3 className="font-display text-4xl leading-tight sm:text-5xl">
-                Your street. Your voice.<br /> Your city, listening.
+      {/* CTA SECTION (Compact & Beautifully Styled on Desktop) */}
+      <section className="hidden sm:block mx-auto max-w-5xl px-4 pb-16 sm:px-6">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-950 via-slate-900 to-teal-950 p-8 sm:p-10 lg:p-12 text-white shadow-2xl border border-emerald-500/30">
+          {/* Subtle Background Glows */}
+          <div className="absolute inset-0 grid-lines opacity-20 pointer-events-none" />
+          <div className="absolute -left-20 -bottom-20 h-64 w-64 rounded-full bg-emerald-500/25 blur-3xl pointer-events-none" />
+          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-amber-500/20 blur-3xl pointer-events-none" />
+
+          <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="max-w-xl">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-amber-300 backdrop-blur mb-3 border border-white/15">
+                <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+                <span>Navi Mumbai Civic Resolution Grid</span>
+              </div>
+              <h3 className="font-display text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight leading-tight text-white">
+                Your street. Your voice.<br />
+                <span className="italic text-amber-300">Your city, listening.</span>
               </h3>
-              <p className="mt-4 max-w-lg text-white/80">
-                Join thousands of citizens already reshaping Navi Mumbai — one complaint at a time.
+              <p className="mt-2.5 text-xs sm:text-sm text-white/80 leading-relaxed font-medium">
+                Join thousands of citizens reshaping Navi Mumbai. Automated AI dispatch, instant SMS updates, and zero friction.
               </p>
             </div>
-            <div className="flex flex-wrap gap-3 md:justify-end">
-              <Button onClick={() => navigate('/report')} size="lg" variant="secondary" className="rounded-full">
-                Get started
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+              <Button onClick={() => navigate('/report')} size="lg" className="rounded-full px-6 py-5 text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg gap-2">
+                <span>File Report</span>
+                <ArrowRight className="h-3.5 w-3.5" />
               </Button>
-              <Button onClick={() => navigate('/about')} size="lg" variant="outline" className="rounded-full border-white/40 bg-white/10 text-white hover:bg-white/20">
-                Learn more
+              <Button onClick={() => navigate('/about')} size="lg" variant="outline" className="rounded-full border-white/20 bg-white/10 px-6 py-5 text-xs font-bold text-white hover:bg-white/20 backdrop-blur">
+                Learn More
               </Button>
             </div>
           </div>
