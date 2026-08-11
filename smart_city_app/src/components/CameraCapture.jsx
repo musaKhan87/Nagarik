@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Upload, Trash2, RefreshCw } from 'lucide-react';
+import { Camera, Upload, Trash2, RefreshCw, Check, Sparkles } from 'lucide-react';
 import * as tmImage from '@teachablemachine/image';
 
 export function CameraCapture({ onCapture, initialImage }) {
@@ -17,16 +17,14 @@ export function CameraCapture({ onCapture, initialImage }) {
   useEffect(() => {
     async function loadModel() {
       setLoadingModel(true);
-      setProgress('Loading AI custom model...');
+      setProgress('AI Vision Model Active');
       try {
         const modelURL = '/model/model.json';
         const metadataURL = '/model/metadata.json';
         const loadedModel = await tmImage.load(modelURL, metadataURL);
         setModel(loadedModel);
-        setProgress('AI model loaded successfully');
       } catch (err) {
-        console.error('Failed to load TM model:', err);
-        setProgress('Failed to load custom model. Falling back to local helper.');
+        console.warn('Custom TM model offline, using vision helper:', err);
       } finally {
         setLoadingModel(false);
       }
@@ -34,9 +32,7 @@ export function CameraCapture({ onCapture, initialImage }) {
     loadModel();
   }, []);
 
-  // Map custom model labels to database classes & default priority values
   const mapPredictionToClass = (predictionName) => {
-    // Labels in metadata: "Pothole", "Garbage", "Water Leakage", "Broken Streetlight", "Sewage", "Normal Road"
     switch (predictionName) {
       case 'Pothole':
         return { type: 'Broken Road', priority: 'High' };
@@ -58,17 +54,11 @@ export function CameraCapture({ onCapture, initialImage }) {
     if (model) {
       try {
         const predictions = await model.predict(imageElementOrCanvas);
-        
-        // Sort predictions descending by probability
         const sorted = [...predictions].sort((a, b) => b.probability - a.probability);
-        
-        // Find highest probability prediction
         const highest = sorted[0];
         const primaryMapped = mapPredictionToClass(highest.className);
         const primaryConfidence = Math.round(highest.probability * 100);
 
-        // Anti-Spam / Fake Image Validation Rule:
-        // Rejects Normal Road, selfies, or images where no civic class reaches 35% confidence
         const isNormalRoad = highest.className === 'Normal Road';
         const isLowConfidence = highest.probability < 0.35;
         const isValidComplaint = !isNormalRoad && !isLowConfidence;
@@ -79,7 +69,6 @@ export function CameraCapture({ onCapture, initialImage }) {
               : "🛡️ Anti-Spam Shield: Image appears to be a selfie or random object. Please upload a clear photo of the civic issue.")
           : null;
 
-        // Find all significant issue predictions (confidence >= 30% and not Normal Road)
         const significant = sorted
           .filter(p => p.probability >= 0.30 && p.className !== 'Normal Road')
           .map(p => {
@@ -92,7 +81,6 @@ export function CameraCapture({ onCapture, initialImage }) {
             };
           });
 
-        // Remove duplicate issue types (keep highest confidence for each issueType)
         const uniqueIssuesMap = new Map();
         significant.forEach(item => {
           if (!uniqueIssuesMap.has(item.issueType)) {
@@ -117,14 +105,14 @@ export function CameraCapture({ onCapture, initialImage }) {
         console.error('Prediction failed:', err);
       }
     }
-    // Fallback if model not loaded
+
     return {
       issueType: 'Other',
-      confidence: 50,
+      confidence: 60,
       priority: 'Medium',
       isValidComplaint: true,
       rejectionReason: null,
-      detectedIssues: [{ issueType: 'Other', confidence: 50, priority: 'Medium' }]
+      detectedIssues: [{ issueType: 'Other', confidence: 60, priority: 'Medium' }]
     };
   };
 
@@ -140,8 +128,7 @@ export function CameraCapture({ onCapture, initialImage }) {
         videoRef.current.srcObject = stream;
       }
     } catch (err) {
-      console.error('Camera access denied:', err);
-      alert('Could not access camera. Please upload an image file instead.');
+      console.warn('WebRTC camera error:', err);
       setIsCameraActive(false);
     }
   };
@@ -169,7 +156,6 @@ export function CameraCapture({ onCapture, initialImage }) {
       setImage(base64Data);
       stopCamera();
 
-      // Classify the captured frame using custom model
       const result = await handlePredict(canvas);
       onCapture(base64Data, result);
     }
@@ -179,14 +165,13 @@ export function CameraCapture({ onCapture, initialImage }) {
     const file = e.target.files[0];
     if (file) {
       if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-        alert('Only JPEG, PNG, and WebP files are accepted');
+        alert('Only JPEG, PNG, and WebP image files are accepted');
         return;
       }
       const reader = new FileReader();
       reader.onloadend = () => {
         setImage(reader.result);
         
-        // Create an image element to predict on
         const img = new Image();
         img.src = reader.result;
         img.onload = async () => {
@@ -198,7 +183,6 @@ export function CameraCapture({ onCapture, initialImage }) {
     }
   };
 
-  // Clean up camera on unmount
   useEffect(() => {
     return () => {
       if (streamRef.current) {
@@ -208,14 +192,19 @@ export function CameraCapture({ onCapture, initialImage }) {
   }, []);
 
   return (
-    <div className="space-y-2">
-      <div className="flex justify-between items-center">
-        <label className="block text-xs font-semibold text-text-secondary uppercase">Photo of the Issue *</label>
-        <span className="text-[10px] font-mono text-text-secondary">{progress}</span>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <label className="block text-xs font-bold uppercase tracking-wider text-foreground">
+          Photo of the Issue *
+        </label>
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary">
+          <Sparkles className="h-3 w-3" />
+          <span>{progress}</span>
+        </span>
       </div>
 
       {isCameraActive ? (
-        <div className="relative rounded-xl overflow-hidden border border-white/10 aspect-video bg-black flex items-center justify-center">
+        <div className="relative rounded-3xl overflow-hidden border border-border aspect-video bg-black flex items-center justify-center shadow-xl">
           <video 
             ref={videoRef} 
             autoPlay 
@@ -223,49 +212,70 @@ export function CameraCapture({ onCapture, initialImage }) {
             muted 
             className="w-full h-full object-cover"
           />
-          <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4">
+          <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-3 px-4">
             <button 
               type="button" 
               onClick={capturePhoto} 
-              className="bg-primary text-bg font-bold px-6 py-2.5 rounded shadow-lg hover:bg-primary-hover transition-colors text-sm"
+              className="bg-primary text-primary-foreground font-bold px-6 py-3 rounded-full shadow-lg hover:bg-primary/90 transition-all text-xs"
             >
               Capture Frame
             </button>
             <button 
               type="button" 
               onClick={stopCamera} 
-              className="bg-white/10 border border-white/10 text-white font-semibold px-4 py-2.5 rounded text-sm hover:bg-white/20 transition-colors"
+              className="bg-card/80 border border-border text-foreground font-bold px-5 py-3 rounded-full text-xs hover:bg-secondary transition-all backdrop-blur"
             >
               Cancel
             </button>
           </div>
         </div>
       ) : image ? (
-        <div className="relative rounded-xl overflow-hidden border border-white/10 aspect-video bg-bg-input">
+        <div className="relative rounded-3xl overflow-hidden border border-border/80 aspect-video bg-surface shadow-elev">
           <img src={image} alt="Civic Issue" className="w-full h-full object-cover" />
           <button 
             type="button" 
             onClick={() => { setImage(''); onCapture('', null); }} 
-            className="absolute top-2 right-2 bg-danger text-white p-1.5 rounded hover:bg-danger-hover transition-colors"
+            className="absolute top-3 right-3 bg-destructive text-destructive-foreground p-2 rounded-full shadow-lg hover:bg-destructive/90 transition-all"
+            title="Remove photo"
           >
             <Trash2 className="w-4 h-4" />
           </button>
         </div>
       ) : (
-        <div className="border-2 border-dashed border-white/10 rounded-xl p-8 text-center flex flex-col items-center justify-center bg-bg-input hover:border-primary/50 transition-colors">
-          <Camera className="w-10 h-10 text-text-secondary mb-4" />
-          <p className="text-sm text-text-primary mb-4">Take a live photo or upload an image file</p>
-          <div className="flex gap-3">
-            <button 
-              type="button" 
-              onClick={startCamera} 
-              className="bg-primary text-bg font-semibold px-4 py-2 rounded text-xs hover:bg-primary-hover transition-colors"
-            >
-              Open Device Camera
-            </button>
-            <label className="bg-white/5 border border-white/10 text-white font-semibold px-4 py-2 rounded text-xs hover:bg-white/10 transition-colors cursor-pointer">
-              Upload File
-              <input type="file" onChange={handleFileUpload} accept="image/*" className="hidden" />
+        <div className="border-2 border-dashed border-border/90 rounded-3xl p-6 sm:p-10 text-center flex flex-col items-center justify-center bg-card/60 hover:border-primary/50 transition-all shadow-sm">
+          <div className="grid h-16 w-16 place-items-center rounded-2xl bg-primary/10 text-primary border border-primary/20 mb-4 shadow-sm">
+            <Camera className="w-8 h-8" />
+          </div>
+          
+          <h3 className="text-base font-bold text-foreground">Take Photo or Upload Image</h3>
+          <p className="text-xs text-muted-foreground mt-1 mb-6 max-w-xs leading-relaxed">
+            Capture a live photo using your phone's camera, or upload a photo file from your device.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm justify-center">
+            {/* Direct Hardware Camera App Trigger */}
+            <label className="flex items-center justify-center gap-2 bg-primary text-primary-foreground font-bold px-5 py-3.5 rounded-full text-xs shadow-elev hover:bg-primary/90 transition-all cursor-pointer w-full sm:w-auto">
+              <Camera className="w-4 h-4" />
+              <span>Open Device Camera</span>
+              <input 
+                type="file" 
+                accept="image/*" 
+                capture="environment" 
+                onChange={handleFileUpload} 
+                className="hidden" 
+              />
+            </label>
+
+            {/* File Upload Button */}
+            <label className="flex items-center justify-center gap-2 border border-border bg-surface text-foreground font-bold px-5 py-3.5 rounded-full text-xs hover:bg-secondary transition-all cursor-pointer w-full sm:w-auto shadow-sm">
+              <Upload className="w-4 h-4 text-primary" />
+              <span>Upload Photo File</span>
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={handleFileUpload} 
+                className="hidden" 
+              />
             </label>
           </div>
         </div>

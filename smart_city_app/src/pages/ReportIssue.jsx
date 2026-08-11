@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { AlertTriangle, MapPin, Sparkles, CheckCircle2, ArrowRight, Layers, Check, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, MapPin, Sparkles, CheckCircle2, ArrowRight, Layers, Check, ShieldAlert, Lock } from 'lucide-react';
 import { useComplaints } from '../context/ComplaintContext';
+import { useAuth } from '../context/AuthContext';
 import { CameraCapture } from '../components/CameraCapture';
 import { Button } from '../components/ui/button';
 import { Textarea } from '../components/ui/textarea';
@@ -12,6 +13,7 @@ const CATEGORIES = ["Broken Road", "Garbage", "Street Light", "Waterlogging", "I
 const SEVERITIES = ["Critical", "High", "Medium", "Low"];
 
 export function ReportIssue() {
+  const { currentUser } = useAuth();
   const { createComplaint, createComplaintsBatch, upvoteComplaint } = useComplaints();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -160,6 +162,82 @@ export function ReportIssue() {
       navigate('/dashboard');
     }
   };
+
+  if (!currentUser) {
+    return (
+      <div className="mx-auto max-w-xl px-4 py-12 sm:py-20 bg-background text-foreground">
+        <div className="relative overflow-hidden rounded-[2.5rem] border border-border/80 bg-card p-6 sm:p-10 shadow-2xl backdrop-blur-xl text-center">
+          {/* Background Ambient Glows */}
+          <div className="absolute -left-20 -top-20 h-64 w-64 rounded-full bg-primary/20 blur-3xl pointer-events-none" />
+          <div className="absolute -right-20 -bottom-20 h-64 w-64 rounded-full bg-accent/20 blur-3xl pointer-events-none" />
+
+          {/* Glowing Lock Badge Icon */}
+          <div className="relative mx-auto grid h-20 w-20 place-items-center rounded-3xl bg-hero text-white shadow-glow mb-6">
+            <ShieldAlert className="h-9 w-9 text-white" />
+            <span className="absolute -top-1 -right-1 grid h-6 w-6 place-items-center rounded-full bg-accent text-accent-foreground text-xs font-bold border-2 border-card">
+              !
+            </span>
+          </div>
+
+          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary/60 px-3.5 py-1 text-xs font-bold text-primary mb-3">
+            <Sparkles className="h-3.5 w-3.5" />
+            <span>Nagarik Citizen Portal</span>
+          </div>
+
+          <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight">
+            Sign In to File Report
+          </h1>
+          <p className="mt-3 text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-md mx-auto">
+            To prevent spam and ensure field crews can dispatch directly to your location, please sign in or create an account first.
+          </p>
+
+          {/* Value Props List */}
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-left text-xs font-semibold">
+            <div className="rounded-2xl border border-border/60 bg-surface/80 p-3 flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-primary shrink-0" />
+              <span>AI Auto-Routing</span>
+            </div>
+            <div className="rounded-2xl border border-border/60 bg-surface/80 p-3 flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-accent shrink-0" />
+              <span>GIS Pinning</span>
+            </div>
+            <div className="rounded-2xl border border-border/60 bg-surface/80 p-3 flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-success shrink-0" />
+              <span>SLA Alerts</span>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="mt-8 flex flex-col gap-3">
+            <Button
+              onClick={() => navigate('/login', { state: { from: '/report' } })}
+              size="lg"
+              className="w-full rounded-full font-bold shadow-elev py-6 text-sm gap-2"
+            >
+              <span>Sign In to Continue</span>
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+
+            <Button
+              onClick={() => navigate('/login', { state: { from: '/report', tab: 'signup' } })}
+              variant="outline"
+              size="lg"
+              className="w-full rounded-full font-bold py-6 text-sm"
+            >
+              Create New Citizen Account
+            </Button>
+          </div>
+
+          <button
+            onClick={() => navigate('/')}
+            className="mt-6 text-xs text-muted-foreground hover:text-foreground font-semibold transition"
+          >
+            ← Return to Home Page
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (step === 3) {
     return (

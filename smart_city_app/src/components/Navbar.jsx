@@ -281,16 +281,21 @@ export function Navbar() {
 
           {currentUser ? (
             <div className="pt-2 border-t border-border flex flex-col gap-2">
-              <div className="p-3 rounded-2xl bg-card border border-border/80 flex items-center gap-3">
-                <div className="grid h-9 w-9 place-items-center rounded-full bg-hero font-display text-xs text-white font-bold shrink-0">
+              <div className="p-3.5 rounded-2xl bg-card border border-border/80 flex items-center gap-3 shadow-sm">
+                <div className="grid h-10 w-10 place-items-center rounded-full bg-hero font-display text-sm text-white font-bold shrink-0 shadow-sm">
                   {currentUser.name ? currentUser.name.slice(0, 2).toUpperCase() : "U"}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="font-bold text-xs text-foreground truncate">{currentUser.name}</div>
-                  <div className="text-[11px] text-muted-foreground truncate">{currentUser.email}</div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-sm text-foreground truncate">{currentUser.name}</span>
+                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary shrink-0 border border-primary/20">
+                      {userRoleLabel}
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground truncate mt-0.5">{currentUser.email}</div>
                 </div>
               </div>
-              <Button onClick={() => { navigate(dashboardPath); setOpen(false); }} className="w-full rounded-2xl gap-2 font-bold py-3">
+              <Button onClick={() => { navigate(dashboardPath); setOpen(false); }} className="w-full rounded-2xl gap-2 font-bold py-3 shadow-elev">
                 <LayoutDashboard className="h-4 w-4" />
                 Go to Dashboard
               </Button>
