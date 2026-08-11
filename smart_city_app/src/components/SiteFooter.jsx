@@ -41,11 +41,11 @@ export function SiteFooter() {
       </div> */}
 
       {/* Main Footer Links Grid */}
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
-        <div className="grid gap-10 md:grid-cols-12">
+      <div className="mx-auto max-w-7xl px-4 py-12 sm:py-16 sm:px-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-12 gap-8 lg:gap-10">
           
-          {/* Brand Column (4 Columns) */}
-          <div className="md:col-span-4 space-y-4">
+          {/* Brand Column */}
+          <div className="sm:col-span-2 md:col-span-4 space-y-4">
             <Link to="/" className="flex items-center gap-3 shrink-0 group">
               <div className="relative grid h-10 w-10 place-items-center rounded-2xl bg-hero text-white shadow-glow transition-transform group-hover:scale-105">
                 <Sparkles className="h-5 w-5 text-white" />
@@ -58,7 +58,7 @@ export function SiteFooter() {
               </div>
             </Link>
 
-            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-sm">
               A modern civic-tech platform built for Indian smart cities. Report potholes, broken streetlights, or overflowing garbage in under 30 seconds.
             </p>
 
@@ -86,19 +86,19 @@ export function SiteFooter() {
             </div>
           </div>
 
-          {/* Column 2: Quick Actions (2 Columns) */}
-          <div className="md:col-span-2">
+          {/* Column 2: Quick Actions */}
+          <div className="sm:col-span-1 md:col-span-2">
             <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-foreground">Quick Actions</h4>
             <ul className="mt-4 space-y-2.5 text-xs sm:text-sm font-medium">
               <li><Link to="/report" className="text-muted-foreground hover:text-primary transition-colors">Report Issue</Link></li>
               <li><Link to="/track" className="text-muted-foreground hover:text-primary transition-colors">Track Complaint</Link></li>
-              <li><Link to="/admin/heatmap" className="text-muted-foreground hover:text-primary transition-colors">City Heatmap</Link></li>
+              <li><Link to="/upvote" className="text-muted-foreground hover:text-primary transition-colors">Upvote Feed</Link></li>
               <li><Link to="/about" className="text-muted-foreground hover:text-primary transition-colors">About Portal</Link></li>
             </ul>
           </div>
 
-          {/* Column 3: Departments (3 Columns) */}
-          <div className="md:col-span-3">
+          {/* Column 3: Departments */}
+          <div className="sm:col-span-1 md:col-span-3">
             <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-foreground">Departments</h4>
             <ul className="mt-4 space-y-2.5 text-xs sm:text-sm font-medium">
               <li className="text-muted-foreground hover:text-primary cursor-pointer transition-colors">Roads & Infrastructure</li>
@@ -108,8 +108,8 @@ export function SiteFooter() {
             </ul>
           </div>
 
-          {/* Column 4: Portals (3 Columns) */}
-          <div className="md:col-span-3">
+          {/* Column 4: Portals */}
+          <div className="sm:col-span-2 md:col-span-3">
             <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-foreground">Portals & Access</h4>
             <ul className="mt-4 space-y-2.5 text-xs sm:text-sm font-medium">
               <li><Link to="/dashboard" className="text-muted-foreground hover:text-primary transition-colors">Citizen Portal</Link></li>

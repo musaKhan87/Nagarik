@@ -346,3 +346,20 @@
 .bg-success { background-color: var(--success); }
 .bg-success-hover { background-color: var(--success); opacity: 0.9; }
 
+/* Responsive & Mobile Touch Utilities */
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+

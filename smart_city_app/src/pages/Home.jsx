@@ -50,44 +50,45 @@ export function Home() {
         <div className="absolute inset-0 grid-lines opacity-40 pointer-events-none" />
         <div className="absolute -left-40 top-20 h-96 w-96 rounded-full bg-primary/20 blur-3xl pointer-events-none" />
         <div className="absolute -right-40 top-40 h-96 w-96 rounded-full bg-accent/20 blur-3xl pointer-events-none" />
-        <div className="relative mx-auto max-w-7xl px-4 pb-20 pt-16 sm:px-6 sm:pt-24 md:pt-32">
-          <div className="grid gap-12 lg:grid-cols-[1.1fr_1fr] lg:items-center">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
+        <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-12 sm:px-6 sm:pb-24 sm:pt-20 lg:pt-28">
+          <div className="flex flex-col lg:grid lg:grid-cols-[1.1fr_1fr] gap-10 lg:gap-12 items-center text-center lg:text-left">
+            <div className="flex flex-col items-center lg:items-start">
+              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3.5 py-1.5 text-xs font-semibold text-muted-foreground backdrop-blur">
                 <span className="grid h-4 w-4 place-items-center rounded-full bg-accent text-accent-foreground">
                   <Sparkles className="h-2.5 w-2.5" />
                 </span>
                 AI-powered · SLA-tracked · Built for Navi Mumbai
               </div>
-              <h1 className="mt-6 font-display text-5xl leading-[1.02] tracking-tight sm:text-6xl md:text-7xl text-foreground">
+              <h1 className="mt-6 font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-[1.05] tracking-tight text-foreground">
                 Your city,
                 <br />
                 <span className="italic text-primary">answerable.</span>
               </h1>
-              <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
+              <p className="mt-4 sm:mt-6 max-w-xl text-sm sm:text-base md:text-lg leading-relaxed text-muted-foreground">
                 Report a pothole, an overflowing bin or a dead streetlight in under a minute.
                 Nagarik routes it to the right department, tracks the SLA, and keeps you posted
                 until it's fixed.
               </p>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Button onClick={() => navigate('/report')} size="lg" className="rounded-full">
-                  Report an issue <ArrowRight className="ml-1 h-4 w-4" />
+              <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3 w-full sm:w-auto">
+                <Button onClick={() => navigate('/report')} size="lg" className="rounded-full w-full sm:w-auto py-6 sm:py-3.5 px-8 text-sm font-bold shadow-elev">
+                  Report an issue <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-                <Button onClick={() => navigate('/track')} size="lg" variant="outline" className="rounded-full">
+                <Button onClick={() => navigate('/track')} size="lg" variant="outline" className="rounded-full w-full sm:w-auto py-6 sm:py-3.5 px-8 text-sm font-bold">
                   Track a complaint
                 </Button>
               </div>
-              <div className="mt-10 grid max-w-lg grid-cols-2 gap-6 sm:grid-cols-4">
+              <div className="mt-8 sm:mt-10 grid grid-cols-2 gap-4 sm:grid-cols-4 max-w-lg w-full mx-auto lg:mx-0">
                 {STATS.map((s) => (
-                  <div key={s.v}>
-                    <div className="font-display text-2xl font-semibold text-foreground">{s.k}</div>
-                    <div className="mt-1 text-xs text-muted-foreground">{s.v}</div>
+                  <div key={s.v} className="bg-card/50 p-3 sm:p-3.5 rounded-2xl border border-border/60 shadow-sm text-center">
+                    <div className="font-display text-xl sm:text-2xl font-extrabold text-foreground">{s.k}</div>
+                    <div className="mt-0.5 text-[10px] sm:text-xs text-muted-foreground font-medium">{s.v}</div>
                   </div>
                 ))}
               </div>
             </div>
+
             {/* Phone / preview mock */}
-            <div className="relative mx-auto w-full max-w-md">
+            <div className="relative mx-auto w-full max-w-md lg:max-w-none">
               <div className="animate-float relative rounded-[2rem] border border-border bg-card p-2 shadow-glow">
                 <div className="rounded-[1.65rem] bg-hero p-6 text-white">
                   <div className="flex items-center justify-between text-xs opacity-90">

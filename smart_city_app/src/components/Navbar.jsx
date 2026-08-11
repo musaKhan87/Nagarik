@@ -60,16 +60,16 @@ export function Navbar() {
           <div>
             <div className="flex items-center gap-2">
               <span className="font-display text-2xl font-bold tracking-tight text-foreground">Nagarik</span>
-              <span className="rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-bold text-success border border-success/30">
+              {/* <span className="rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-bold text-success border border-success/30">
                 • Live Grid
-              </span>
+              </span> */}
             </div>
             <span className="text-[11px] font-medium text-muted-foreground block -mt-0.5">Navi Mumbai Portal</span>
           </div>
         </Link>
 
-        {/* Desktop Nav Links */}
-        <nav className="hidden md:flex items-center gap-1.5 rounded-full border border-border/80 bg-card/60 px-3 py-1.5 backdrop-blur-md shadow-sm">
+        {/* Desktop Nav Links (Visible on Large Screens >= 1024px) */}
+        <nav className="hidden lg:flex items-center gap-1.5 rounded-full border border-border/80 bg-card/60 px-3 py-1.5 backdrop-blur-md shadow-sm">
           {NAV.map((n) => {
             const act = path === n.to;
             return (
@@ -233,9 +233,9 @@ export function Navbar() {
             </div>
           )}
 
-          {/* Mobile Hamburger */}
+          {/* Mobile & Tablet Hamburger Button */}
           <button
-            className="grid h-9 w-9 place-items-center rounded-full border border-border md:hidden bg-card text-foreground"
+            className="grid h-9 w-9 place-items-center rounded-full border border-border lg:hidden bg-card text-foreground"
             onClick={() => setOpen((o) => !o)}
             aria-label="Toggle menu"
           >
@@ -244,9 +244,9 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Navigation Drawer */}
+      {/* Mobile & Tablet Navigation Drawer */}
       {open && (
-        <div className="border-t border-border/80 bg-background/95 p-4 shadow-2xl backdrop-blur-2xl md:hidden animate-in fade-in slide-in-from-top-2">
+        <div className="border-t border-border/80 bg-background/95 p-4 shadow-2xl backdrop-blur-2xl lg:hidden animate-in fade-in slide-in-from-top-2">
           <nav className="flex flex-col space-y-1">
             {NAV.map((n) => {
               const active = path === n.to;

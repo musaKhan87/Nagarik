@@ -38,31 +38,31 @@ export function CitizenDashboard() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 bg-background text-foreground">
-      <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Your dashboard</div>
-          <h1 className="mt-2 font-display text-4xl sm:text-5xl text-foreground">Track your complaints.</h1>
-          <p className="mt-2 text-muted-foreground">Live status, upvotes, resolution proof.</p>
+          <h1 className="mt-1.5 font-display text-3xl sm:text-4xl md:text-5xl text-foreground">Track your complaints.</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Live status, upvotes, resolution proof.</p>
         </div>
-        <div className="flex gap-2">
-          <div className="relative">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:w-64">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search complaints..." className="w-56 pl-9 sm:w-64" />
+            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search complaints..." className="w-full pl-9" />
           </div>
-          <Button onClick={() => navigate('/report')} className="rounded-full">File Report</Button>
+          <Button onClick={() => navigate('/report')} className="rounded-full w-full sm:w-auto font-bold">File Report</Button>
         </div>
       </div>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-4">
+      <div className="mt-6 sm:mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
           { k: complaints.length, v: "Total", c: "" },
           { k: complaints.filter(c => c.status === 'Pending').length, v: "Pending", c: "text-warning" },
           { k: complaints.filter(c => c.status === 'In Progress').length, v: "In progress", c: "text-primary" },
           { k: complaints.filter(c => c.status === 'Resolved').length, v: "Resolved", c: "text-success" },
         ].map((s) => (
-          <div key={s.v} className="rounded-2xl border border-border bg-card p-5">
-            <div className={`font-display text-3xl ${s.c}`}>{s.k}</div>
-            <div className="mt-1 text-xs uppercase tracking-widest text-muted-foreground">{s.v}</div>
+          <div key={s.v} className="rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-sm">
+            <div className={`font-display text-2xl sm:text-3xl font-bold ${s.c}`}>{s.k}</div>
+            <div className="mt-0.5 text-[10px] sm:text-xs uppercase tracking-widest text-muted-foreground">{s.v}</div>
           </div>
         ))}
       </div>
