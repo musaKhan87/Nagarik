@@ -381,16 +381,16 @@ export function ReportIssue() {
           {step === 2 && (
             <>
               <h2 className="font-display text-2xl text-foreground">2 · Add the details</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Location is auto-captured. Everything else is optional.</p>
+              <p className="mt-1 text-xs sm:text-sm text-muted-foreground">Location is auto-captured. Provide issue details below.</p>
 
-              <div className="mt-6 space-y-4">
+              <div className="mt-5 space-y-4">
                 {selectedIssues.length > 1 ? (
-                  <div className="rounded-2xl border border-primary/30 bg-primary/10 p-4 space-y-2">
+                  <div className="rounded-2xl border border-primary/30 bg-primary/10 p-3.5 sm:p-4 space-y-2">
                     <div className="flex items-center gap-2 text-xs font-bold text-primary">
-                      <Layers className="h-4 w-4" />
+                      <Layers className="h-4 w-4 shrink-0" />
                       <span>AI Department Auto-Split Routing ({selectedIssues.length} Complaints)</span>
                     </div>
-                    <div className="mt-2 flex flex-wrap gap-2">
+                    <div className="mt-2 flex flex-wrap gap-1.5 sm:gap-2">
                       {selectedIssues.map(t => {
                         const dept = t.includes('Road') || t.includes('Pothole') || t.includes('Traffic') ? '🛣️ Roads & Infra'
                           : t.includes('Garbage') || t.includes('Waterlogging') || t.includes('Dumping') || t.includes('Drain') || t.includes('Sewage') ? '🗑️ Sanitation Dept'
@@ -398,31 +398,31 @@ export function ReportIssue() {
                           : t.includes('Water') ? '💧 Water Supply'
                           : '🏢 General Dept';
                         return (
-                          <span key={t} className="flex items-center gap-1.5 rounded-xl bg-card px-3 py-1.5 text-xs font-bold text-foreground border border-border shadow-sm">
+                          <span key={t} className="flex items-center gap-1.5 rounded-xl bg-card px-2.5 py-1 text-xs font-bold text-foreground border border-border shadow-sm">
                             <span>{t}</span>
                             <span className="text-primary font-mono text-[10px]">({dept})</span>
                           </span>
                         );
                       })}
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground leading-relaxed">
                       Each complaint will be auto-routed to its designated department with concurrent dispatch.
                     </p>
                   </div>
                 ) : (
                   <div>
-                    <Label>Category *</Label>
+                    <Label className="text-xs font-bold uppercase tracking-wider text-foreground">Category *</Label>
                     <Select value={selectedIssues[0] || issueType} onValueChange={(val) => { setIssueType(val); setSelectedIssues([val]); }}>
-                      <SelectTrigger className="mt-1.5"><SelectValue placeholder="Select Category" /></SelectTrigger>
+                      <SelectTrigger className="mt-1.5 h-11 rounded-2xl text-xs sm:text-sm"><SelectValue placeholder="Select Category" /></SelectTrigger>
                       <SelectContent>
                         {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                       </SelectContent>
                     </Select>
                     
                     {/* Auto-Routing Badge Indicator */}
-                    <div className="mt-2.5 flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 p-2.5 text-xs text-primary font-bold">
-                      <Sparkles className="h-3.5 w-3.5" />
-                      <span>
+                    <div className="mt-2 flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 p-2.5 text-xs text-primary font-bold">
+                      <Sparkles className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">
                         Auto-Routing to: {" "}
                         <strong className="text-foreground font-extrabold">
                           {(selectedIssues[0] || issueType).includes('Road') || (selectedIssues[0] || issueType).includes('Pothole') ? '🛣️ Roads & Infrastructure Dept'
@@ -436,9 +436,9 @@ export function ReportIssue() {
                 )}
 
                 <div>
-                  <Label>Severity *</Label>
+                  <Label className="text-xs font-bold uppercase tracking-wider text-foreground">Severity *</Label>
                   <Select value={priority} onValueChange={setPriority}>
-                    <SelectTrigger className="mt-1.5"><SelectValue placeholder="Select Severity" /></SelectTrigger>
+                    <SelectTrigger className="mt-1.5 h-11 rounded-2xl text-xs sm:text-sm"><SelectValue placeholder="Select Severity" /></SelectTrigger>
                     <SelectContent>
                       {SEVERITIES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                     </SelectContent>
@@ -446,24 +446,24 @@ export function ReportIssue() {
                 </div>
 
                 <div>
-                  <Label>Description *</Label>
-                  <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={4} placeholder="Any extra context that helps the field team." className="mt-1.5 text-foreground" />
+                  <Label className="text-xs font-bold uppercase tracking-wider text-foreground">Description *</Label>
+                  <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} placeholder="Provide landmark details or specific instructions for the field worker..." className="mt-1.5 text-foreground rounded-2xl text-xs sm:text-sm p-3.5" />
                 </div>
 
-                <div className="flex items-center gap-3 rounded-xl border border-border bg-surface p-4 text-sm text-foreground">
+                <div className="flex items-center gap-2.5 rounded-2xl border border-border bg-surface p-3.5 text-xs sm:text-sm text-foreground shadow-sm">
                   <MapPin className="h-4 w-4 text-primary shrink-0" />
-                  <span className="truncate">{location.address}</span>
+                  <span className="break-words min-w-0 flex-1 text-xs sm:text-sm">{location.address}</span>
                 </div>
               </div>
 
-              <div className="mt-6 flex items-center justify-between">
-                <Button variant="ghost" onClick={() => setStep(1)}>← Back</Button>
-                <Button size="lg" disabled={submitting || selectedIssues.length === 0 || !description} className="rounded-full" onClick={() => handleSubmit()}>
+              <div className="mt-6 flex flex-col-reverse sm:flex-row gap-3 sm:items-center sm:justify-between">
+                <Button variant="ghost" onClick={() => setStep(1)} className="rounded-full justify-center text-xs sm:text-sm py-3">← Back</Button>
+                <Button size="lg" disabled={submitting || selectedIssues.length === 0 || !description} className="rounded-full font-bold shadow-elev py-6 px-8 text-xs sm:text-sm w-full sm:w-auto" onClick={() => handleSubmit()}>
                   {submitting 
                     ? 'Submitting...' 
                     : selectedIssues.length > 1 
                       ? `Submit ${selectedIssues.length} Complaints` 
-                      : 'Submit complaint'} <ArrowRight className="ml-1 h-4 w-4" />
+                      : 'Submit Complaint'} <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
             </>

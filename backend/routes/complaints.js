@@ -150,18 +150,19 @@ router.post('/', verifyToken, async (req, res, next) => {
 
     await complaint.save();
 
-    // Email the citizen acknowledgement
-    const citizen = await User.findById(req.user.userId);
-    if (citizen?.email) {
-      await sendStatusEmail({
-        to: citizen.email,
-        name: citizen.name,
-        complaintId: complaint._id,
-        status: 'Submitted',
-        issueType: complaint.issueType,
-        deadline: complaint.deadline,
-      });
-    }
+    // Email the citizen acknowledgement (Asynchronously in background to avoid blocking API response)
+    User.findById(req.user.userId).then(citizen => {
+      if (citizen?.email) {
+        sendStatusEmail({
+          to: citizen.email,
+          name: citizen.name,
+          complaintId: complaint._id,
+          status: 'Submitted',
+          issueType: complaint.issueType,
+          deadline: complaint.deadline,
+        }).catch(e => console.error('[EMAIL BACKGROUND ERR]:', e.message));
+      }
+    }).catch(e => console.error('[EMAIL USER LOOKUP ERR]:', e.message));
 
     // Trigger Web Push Notification for Complaint Submitted
     sendPushNotificationToUser(req.user.userId, {
