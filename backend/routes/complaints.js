@@ -42,7 +42,7 @@ const DEFAULT_DEPARTMENTS = {
 // ───────────────────────────────────────────────
 router.post('/', verifyToken, async (req, res, next) => {
   try {
-    const { issueType, description, photo, lat, lng, address, priority } = req.body;
+    const { issueType, description, photo, lat, lng, address, priority, bypassDuplicate } = req.body;
 
     if (!issueType || !description || !photo || lat === undefined || lng === undefined) {
       return res.status(400).json({
@@ -50,76 +50,60 @@ router.post('/', verifyToken, async (req, res, next) => {
       });
     }
 
-    // ── 1. DUPLICATE DETECTION & AUTO-MERGE ENGINE ─────────────────────
-    // Detect similar unresolved complaints within 100m in the last 24 hours
+    // ── 1. DUPLICATE DETECTION ENGINE ─────────────────────
+    // Detect similar unresolved complaints within 100m in the last 24 hours (if not bypassed by citizen)
     let duplicate = null;
-    try {
-      duplicate = await Complaint.findOne({
-        issueType,
-        status: { $nin: ['Resolved', 'Closed'] },
-        createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-        location: {
-          $near: {
-            $geometry: { type: 'Point', coordinates: [parseFloat(lng), parseFloat(lat)] },
-            $maxDistance: 100, // 100 metres radius
+    if (!bypassDuplicate) {
+      try {
+        duplicate = await Complaint.findOne({
+          issueType,
+          status: { $nin: ['Resolved', 'Closed'] },
+          createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+          location: {
+            $near: {
+              $geometry: { type: 'Point', coordinates: [parseFloat(lng), parseFloat(lat)] },
+              $maxDistance: 100, // 100 metres radius
+            },
           },
-        },
-      });
-    } catch (geoErr) {
-      // Fallback if 2dsphere index is still building on MongoDB Atlas
-      console.warn('[GEO INDEX FALLBACK] Using Haversine distance calculation:', geoErr.message);
-      const recentCandidates = await Complaint.find({
-        issueType,
-        status: { $nin: ['Resolved', 'Closed'] },
-        createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-      });
+        });
+      } catch (geoErr) {
+        // Fallback if 2dsphere index is still building on MongoDB Atlas
+        console.warn('[GEO INDEX FALLBACK] Using Haversine distance calculation:', geoErr.message);
+        const recentCandidates = await Complaint.find({
+          issueType,
+          status: { $nin: ['Resolved', 'Closed'] },
+          createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+        });
 
-      const haversineMeters = (lat1, lon1, lat2, lon2) => {
-        const R = 6371e3; // Earth radius in metres
-        const φ1 = lat1 * Math.PI / 180;
-        const φ2 = lat2 * Math.PI / 180;
-        const Δφ = (lat2 - lat1) * Math.PI / 180;
-        const Δλ = (lon2 - lon1) * Math.PI / 180;
-        const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-                  Math.cos(φ1) * Math.cos(φ2) *
-                  Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c;
-      };
+        const haversineMeters = (lat1, lon1, lat2, lon2) => {
+          const R = 6371e3; // Earth radius in metres
+          const φ1 = lat1 * Math.PI / 180;
+          const φ2 = lat2 * Math.PI / 180;
+          const Δφ = (lat2 - lat1) * Math.PI / 180;
+          const Δλ = (lon2 - lon1) * Math.PI / 180;
+          const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                    Math.cos(φ1) * Math.cos(φ2) *
+                    Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+          return R * c;
+        };
 
-      duplicate = recentCandidates.find(c => {
-        if (c.location?.coordinates && c.location.coordinates.length === 2) {
-          const dist = haversineMeters(parseFloat(lat), parseFloat(lng), c.location.coordinates[1], c.location.coordinates[0]);
-          return dist <= 100;
-        }
-        return false;
-      }) || null;
-    }
-
-    if (duplicate) {
-      // Auto-merge: add user's upvote to existing nearby complaint if not already upvoted
-      const alreadyUpvoted = duplicate.upvotes.some(u => u.userId?.toString() === req.user.userId);
-      if (!alreadyUpvoted) {
-        duplicate.upvotes.push({ userId: req.user.userId });
-        duplicate.upvoteCount = duplicate.upvotes.length;
-
-        // Auto-escalate priority to Critical if high density of upvotes (>= 5)
-        if (duplicate.upvoteCount >= 5 && duplicate.priority !== 'Critical') {
-          duplicate.priority = 'Critical';
-          const newDeadline = new Date();
-          newDeadline.setHours(newDeadline.getHours() + 12);
-          duplicate.deadline = newDeadline;
-        }
-
-        await duplicate.save();
+        duplicate = recentCandidates.find(c => {
+          if (c.location?.coordinates && c.location.coordinates.length === 2) {
+            const dist = haversineMeters(parseFloat(lat), parseFloat(lng), c.location.coordinates[1], c.location.coordinates[0]);
+            return dist <= 100;
+          }
+          return false;
+        }) || null;
       }
 
-      return res.status(200).json({
-        isDuplicate: true,
-        merged: true,
-        complaint: duplicate,
-        message: `A similar ${issueType} complaint exists within 100m reported in the last 24 hours. Your report has been merged and upvoted to escalate priority!`,
-      });
+      if (duplicate) {
+        return res.status(200).json({
+          isDuplicate: true,
+          complaint: duplicate,
+          message: `A similar active ${issueType} complaint exists within 100m. Please review it to upvote or proceed with a new complaint.`,
+        });
+      }
     }
 
     // ── 2. PRIORITY SCORE ENGINE ───────────────────────────────────────

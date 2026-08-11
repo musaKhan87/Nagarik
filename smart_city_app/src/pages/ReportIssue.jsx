@@ -95,7 +95,7 @@ export function ReportIssue() {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e, bypassDuplicate = false) => {
     if (e) e.preventDefault();
     if (!image || (!issueType && selectedIssues.length === 0) || !description) {
       alert('Please snap/upload a photo, select issue type(s), and describe the issue.');
@@ -139,7 +139,8 @@ export function ReportIssue() {
         lat: location.lat,
         lng: location.lng,
         address: location.address,
-        priority
+        priority,
+        bypassDuplicate
       });
       setSubmitting(false);
 
@@ -491,19 +492,60 @@ export function ReportIssue() {
       </div>
 
       {showDuplicateModal && duplicateComplaint && (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-6 backdrop-blur-sm">
-          <div className="glass-panel p-8 rounded-3xl border border-border max-w-md w-full text-center shadow-2xl text-foreground bg-card">
-            <AlertTriangle className="w-12 h-12 text-primary mx-auto mb-4" />
-            <h3 className="font-display text-xl font-bold text-foreground mb-2">Same Issue Exists Nearby</h3>
-            <p className="text-muted-foreground text-sm mb-6">
-              A similar active complaint exists nearby. Would you like to upvote it instead of filing a duplicate?
-            </p>
-            <div className="flex gap-4">
-              <Button onClick={handleUpvoteDuplicate} className="flex-1 rounded-full py-2.5 font-bold">
-                Yes, Upvote Instead
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 sm:p-6 backdrop-blur-md animate-in fade-in">
+          <div className="rounded-3xl border border-border max-w-lg w-full p-6 sm:p-8 shadow-2xl text-foreground bg-card text-left space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-amber-500/15 text-amber-500 border border-amber-500/30">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="font-display text-lg sm:text-xl font-bold text-foreground">Similar Issue Found Nearby</h3>
+                <p className="text-xs text-muted-foreground">Reported within 100m in the last 24 hours. Is this the same issue?</p>
+              </div>
+            </div>
+
+            {/* Nearby Complaint Details Preview Card */}
+            <div className="rounded-2xl border border-border bg-surface p-4 space-y-3 shadow-inner">
+              <div className="flex items-center justify-between">
+                <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary border border-primary/20">
+                  {duplicateComplaint.issueType}
+                </span>
+                <span className="text-[11px] font-mono text-muted-foreground font-semibold">
+                  👍 {duplicateComplaint.upvoteCount || 1} Upvotes
+                </span>
+              </div>
+
+              {duplicateComplaint.photo && (
+                <div className="h-32 w-full overflow-hidden rounded-xl border border-border">
+                  <img src={duplicateComplaint.photo} alt="Existing Complaint" className="h-full w-full object-cover" />
+                </div>
+              )}
+
+              <p className="text-xs text-foreground line-clamp-2 leading-relaxed font-medium">
+                "{duplicateComplaint.description}"
+              </p>
+
+              <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span className="truncate">{duplicateComplaint.location?.address || 'Nearby Location'}</span>
+              </div>
+            </div>
+
+            {/* Interactive Choice Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 pt-1">
+              <Button onClick={handleUpvoteDuplicate} size="lg" className="flex-1 rounded-full font-bold py-6 text-xs sm:text-sm shadow-elev gap-2">
+                <span>Yes, Upvote Nearby Issue</span>
               </Button>
-              <Button variant="outline" onClick={() => setShowDuplicateModal(false)} className="flex-1 rounded-full py-2.5">
-                Cancel
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowDuplicateModal(false);
+                  handleSubmit(null, true); // Bypass duplicate check and submit new complaint!
+                }} 
+                size="lg" 
+                className="flex-1 rounded-full font-bold py-6 text-xs sm:text-sm border-border hover:bg-secondary"
+              >
+                No, File as New Issue
               </Button>
             </div>
           </div>

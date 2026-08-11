@@ -142,16 +142,30 @@ export function CameraCapture({ onCapture, initialImage }) {
   };
 
   const capturePhoto = async () => {
-    if (videoRef.current && canvasRef.current) {
+    if (videoRef.current) {
       const video = videoRef.current;
-      const canvas = canvasRef.current;
+      const canvas = canvasRef.current || document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
+      const maxDim = 800;
+      let width = video.videoWidth || 640;
+      let height = video.videoHeight || 480;
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      ctx.drawImage(video, 0, 0, width, height);
       
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const base64Data = canvas.toDataURL('image/jpeg');
+      // Compress frame to lightweight JPEG 0.7 (~60KB-80KB)
+      const base64Data = canvas.toDataURL('image/jpeg', 0.7);
       
       setImage(base64Data);
       stopCamera();
@@ -170,13 +184,33 @@ export function CameraCapture({ onCapture, initialImage }) {
       }
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImage(reader.result);
-        
         const img = new Image();
         img.src = reader.result;
         img.onload = async () => {
-          const result = await handlePredict(img);
-          onCapture(reader.result, result);
+          // Compress uploaded image to max 800px & JPEG 0.7 quality (~80KB max)
+          const canvas = document.createElement('canvas');
+          const maxDim = 800;
+          let width = img.width;
+          let height = img.height;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+          setImage(compressedBase64);
+
+          const result = await handlePredict(canvas);
+          onCapture(compressedBase64, result);
         };
       };
       reader.readAsDataURL(file);
