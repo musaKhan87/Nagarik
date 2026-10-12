@@ -6,25 +6,41 @@ export function CameraCapture({ onCapture, initialImage }) {
   const [image, setImage] = useState(initialImage || '');
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [model, setModel] = useState(null);
+  const [modelMeta, setModelMeta] = useState(null);
   const [loadingModel, setLoadingModel] = useState(false);
-  const [progress, setProgress] = useState('');
+  const [progress, setProgress] = useState('Loading Custom AI Model...');
   
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
 
-  // Load the Teachable Machine custom model from public folder
+  // Load the Teachable Machine custom model from public folder with cache-busting
   useEffect(() => {
     async function loadModel() {
       setLoadingModel(true);
-      setProgress('AI Vision Model Active');
       try {
-        const modelURL = '/model/model.json';
-        const metadataURL = '/model/metadata.json';
+        const cacheBuster = Date.now();
+        const modelURL = `/model/model.json?v=${cacheBuster}`;
+        const metadataURL = `/model/metadata.json?v=${cacheBuster}`;
+
+        // Fetch metadata to read training metrics & labels
+        try {
+          const metaResp = await fetch(metadataURL);
+          if (metaResp.ok) {
+            const meta = await metaResp.json();
+            setModelMeta(meta);
+          }
+        } catch (e) {
+          console.warn('Metadata fetch error:', e);
+        }
+
         const loadedModel = await tmImage.load(modelURL, metadataURL);
         setModel(loadedModel);
+        setProgress('Civic AI Model Active (Original • 6 Classes)');
+        console.log('✅ Original balanced Teachable Machine Model restored & active from /model/model.json');
       } catch (err) {
         console.warn('Custom TM model offline, using vision helper:', err);
+        setProgress('Vision Helper Active');
       } finally {
         setLoadingModel(false);
       }
@@ -39,11 +55,15 @@ export function CameraCapture({ onCapture, initialImage }) {
       case 'Garbage':
         return { type: 'Garbage', priority: 'Low' };
       case 'Broken Streetlight':
-        return { type: 'Street Light', priority: 'Low' };
+      case 'Street Light':
+      case 'Not Working':
+      case 'Flicker':
+        return { type: 'Street Light', priority: 'High' };
       case 'Water Leakage':
         return { type: 'Waterlogging', priority: 'Medium' };
       case 'Sewage':
         return { type: 'Waterlogging', priority: 'High' };
+      case 'Working':
       case 'Normal Road':
       default:
         return { type: 'Other', priority: 'Medium' };
@@ -54,12 +74,13 @@ export function CameraCapture({ onCapture, initialImage }) {
     if (model) {
       try {
         const predictions = await model.predict(imageElementOrCanvas);
+        console.log('🤖 [Custom TM Model] Raw Predictions:', predictions.map(p => `${p.className}: ${(p.probability * 100).toFixed(1)}%`));
         const sorted = [...predictions].sort((a, b) => b.probability - a.probability);
         const highest = sorted[0];
         const primaryMapped = mapPredictionToClass(highest.className);
         const primaryConfidence = Math.round(highest.probability * 100);
 
-        const isNormalRoad = highest.className === 'Normal Road';
+        const isNormalRoad = highest.className === 'Normal Road' || highest.className === 'Working';
         const isLowConfidence = highest.probability < 0.35;
         const isValidComplaint = !isNormalRoad && !isLowConfidence;
 
@@ -91,12 +112,16 @@ export function CameraCapture({ onCapture, initialImage }) {
 
         return {
           issueType: primaryMapped.type,
+          rawClass: highest.className,
           confidence: primaryConfidence,
           priority: primaryMapped.priority,
           isValidComplaint,
           rejectionReason,
+          rawPredictions: sorted.map(p => ({ label: p.className, score: Math.round(p.probability * 100) })),
+          modelSource: 'public/model/model.json',
           detectedIssues: isValidComplaint && detectedIssues.length > 0 ? detectedIssues : [{
             issueType: primaryMapped.type,
+            rawClass: highest.className,
             confidence: primaryConfidence,
             priority: primaryMapped.priority
           }]
@@ -231,10 +256,11 @@ export function CameraCapture({ onCapture, initialImage }) {
         <label className="block text-xs font-bold uppercase tracking-wider text-foreground">
           Photo of the Issue *
         </label>
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary">
+        <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
           <Sparkles className="h-3 w-3" />
           <span>{progress}</span>
-        </span>
+        </div>
       </div>
 
       {isCameraActive ? (

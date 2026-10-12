@@ -10,7 +10,7 @@ export const ROLE_META = {
 
 const MATRIX = {
   super_admin: [
-    "admin.overview","admin.complaints","admin.heatmap","admin.workers",
+    "admin.overview","admin.complaints","admin.heatmap",
     "admin.analytics","admin.settings","admin.users","admin.system",
   ],
   dept_admin: [

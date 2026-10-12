@@ -1,16 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect,useMemo } from 'react';
 import { Routes, Route, useNavigate, Link } from 'react-router-dom';
 import {
   Map, BarChart2, Filter, Search, ArrowUpRight, ChevronRight,
-  MapPin, UserPlus, Users, Sparkles, Plus, AlertCircle, Eye, Settings2, Trash2
+  MapPin, UserPlus, Users, Sparkles, Plus, AlertCircle, Eye, Settings2, Trash2,
+  Clock, CheckCircle2, ShieldAlert, X, Briefcase, Image as ImageIcon, Flame, Edit2
 } from 'lucide-react';
 import api from '../api';
+import { useAuth } from '../context/AuthContext';
 import { useComplaints } from '../context/ComplaintContext';
 import { MapView } from '../components/MapView';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { AdminShell, AccessDenied, PageHeader } from '../components/admin/admin-shell';
 import { useAdminRole, ROLE_META } from '../lib/admin-role';
+import { RoleManagement } from './RoleManagement';
 
 // ────────────────────────────────────────────────────────────────
 // OVERVIEW SUBPAGE
@@ -92,14 +95,57 @@ function OverviewView({ complaints, workers, setSelectedComplaint }) {
 
       {/* Recent Complaints */}
       <div className="mt-6 overflow-hidden rounded-3xl border border-border bg-card">
-        <div className="flex items-center justify-between p-6">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-border/50">
           <div>
-            <div className="font-display text-xl">Recent complaints</div>
+            <div className="font-display text-lg sm:text-xl text-foreground">Recent complaints</div>
             <div className="text-xs text-muted-foreground">Auto-routed to departments · assign or escalate</div>
           </div>
-          <Button variant="outline" size="sm" onClick={() => navigate('/admin/complaints')}>View all <ChevronRight className="ml-1 h-4 w-4" /></Button>
+          <Button variant="outline" size="sm" onClick={() => navigate('/admin/complaints')} className="text-xs rounded-xl">
+            View all <ChevronRight className="ml-1 h-3.5 w-3.5" />
+          </Button>
         </div>
-        <div className="overflow-x-auto">
+
+        {/* Mobile View for Recent Complaints */}
+        <div className="p-3 space-y-2.5 md:hidden">
+          {recent.map((c) => {
+            const assignedWorker = workers.find(w => w._id === (c.assignedWorker?._id || c.assignedWorker));
+            return (
+              <div key={c._id} className="rounded-xl border border-border bg-surface p-3 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-mono text-[11px] text-muted-foreground">#{c._id?.slice(-6)}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                      c.priority === "Critical" ? "bg-rose-500/15 text-rose-600 dark:text-rose-400" :
+                      c.priority === "High" ? "bg-orange-500/15 text-orange-600 dark:text-orange-400" :
+                      c.priority === "Medium" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400" : "bg-muted text-muted-foreground"
+                    }`}>{c.priority}</span>
+                    <span className="rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[10px] font-bold">{c.status}</span>
+                  </div>
+                </div>
+                <div className="text-xs font-semibold text-foreground line-clamp-1">{c.issueType}</div>
+                <p className="text-xs text-muted-foreground line-clamp-2">{c.description}</p>
+                <div className="pt-1 flex items-center justify-between text-xs border-t border-border/40">
+                  <span className="text-[11px] text-muted-foreground truncate max-w-[150px]">
+                    {assignedWorker ? assignedWorker.name : 'Unassigned'}
+                  </span>
+                  {c.status === 'Pending' ? (
+                    <Button onClick={() => setSelectedComplaint(c)} size="sm" className="h-7 text-[11px] px-3 rounded-lg">
+                      Assign
+                    </Button>
+                  ) : (
+                    <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">Assigned</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+          {recent.length === 0 && (
+            <div className="p-6 text-center text-xs text-muted-foreground">No recent complaints found.</div>
+          )}
+        </div>
+
+        {/* Desktop Table for Recent Complaints */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-surface text-xs uppercase tracking-widest text-muted-foreground">
               <tr>
@@ -110,10 +156,10 @@ function OverviewView({ complaints, workers, setSelectedComplaint }) {
             </thead>
             <tbody>
               {recent.map((c) => {
-                const assignedWorker = workers.find(w => w._id === c.assignedWorker);
+                const assignedWorker = workers.find(w => w._id === (c.assignedWorker?._id || c.assignedWorker));
                 return (
                   <tr key={c._id} className="border-t border-border transition hover:bg-secondary/40">
-                    <td className="px-6 py-4 font-mono text-xs text-muted-foreground truncate max-w-[120px]">#{c._id}</td>
+                    <td className="px-6 py-4 font-mono text-xs text-muted-foreground truncate max-w-[120px]">#{c._id?.slice(-6)}</td>
                     <td className="px-6 py-4 font-medium">{c.description}</td>
                     <td className="px-6 py-4 text-muted-foreground">{c.issueType}</td>
                     <td className="px-6 py-4">
@@ -126,11 +172,25 @@ function OverviewView({ complaints, workers, setSelectedComplaint }) {
                     <td className="px-6 py-4 text-xs">{c.status}</td>
                     <td className="px-6 py-4">
                       {c.status === 'Pending' ? (
-                        <Button onClick={() => setSelectedComplaint(c)} size="sm" className="rounded-full">
+                        <Button onClick={() => setSelectedComplaint(c)} size="sm" className="rounded-full text-xs font-bold shadow-sm">
                           Assign
                         </Button>
                       ) : (
-                        <span className="text-xs">{assignedWorker ? assignedWorker.name : 'Assigned'}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium text-foreground">
+                            {assignedWorker ? assignedWorker.name : 'Assigned'}
+                          </span>
+                          {c.status !== 'Resolved' && (
+                            <Button 
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedComplaint(c)}
+                              className="h-7 px-2.5 rounded-lg text-[11px] font-bold text-primary hover:border-primary/60 hover:bg-primary/5 transition"
+                            >
+                              Reassign
+                            </Button>
+                          )}
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -150,12 +210,13 @@ function OverviewView({ complaints, workers, setSelectedComplaint }) {
 }
 
 // ────────────────────────────────────────────────────────────────
-// COMPLAINTS SUBPAGE
+// COMPLAINTS SUBPAGE (Mobile-Optimized & Desktop)
 // ────────────────────────────────────────────────────────────────
 function ComplaintsView({ complaints, workers, setSelectedComplaint }) {
   const [tab, setTab] = useState("All");
   const [q, setQ] = useState("");
   const [filterDept, setFilterDept] = useState("");
+  const [previewPhoto, setPreviewPhoto] = useState(null);
 
   const TABS = ["All", "🚨 SLA Breached", "Pending", "In Progress", "Resolved"];
 
@@ -173,119 +234,363 @@ function ComplaintsView({ complaints, workers, setSelectedComplaint }) {
     })
     .filter((c) => (filterDept ? c.assignedDept === filterDept : true))
     .filter((c) =>
-      q ? [c.description, c.issueType, c._id].some((v) => v?.toLowerCase().includes(q.toLowerCase())) : true
+      q ? [c.description, c.issueType, c._id, c.location?.address, c.address].some((v) => v?.toLowerCase().includes(q.toLowerCase())) : true
     );
+
+  // Helper for priority badges
+  const renderPriorityBadge = (p) => {
+    switch (p) {
+      case "Critical":
+        return <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/15 border border-rose-500/30 px-2.5 py-0.5 text-[11px] font-bold text-rose-600 dark:text-rose-400">Critical</span>;
+      case "High":
+        return <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/15 border border-orange-500/30 px-2.5 py-0.5 text-[11px] font-bold text-orange-600 dark:text-orange-400">High</span>;
+      case "Medium":
+        return <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 text-[11px] font-bold text-amber-600 dark:text-amber-400">Medium</span>;
+      default:
+        return <span className="inline-flex items-center gap-1 rounded-full bg-slate-500/15 border border-slate-500/30 px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">{p || 'Low'}</span>;
+    }
+  };
+
+  // Helper for status badges
+  const renderStatusBadge = (s) => {
+    switch (s) {
+      case "Resolved":
+        return <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400"><CheckCircle2 className="h-3 w-3" /> Resolved</span>;
+      case "In Progress":
+        return <span className="inline-flex items-center gap-1 rounded-full bg-sky-500/15 border border-sky-500/30 px-2.5 py-0.5 text-[11px] font-bold text-sky-600 dark:text-sky-400"><Clock className="h-3 w-3" /> In Progress</span>;
+      default:
+        return <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 text-[11px] font-bold text-amber-600 dark:text-amber-400">Pending</span>;
+    }
+  };
+
+  // Helper for SLA badge
+  const renderSlaBadge = (c) => {
+    if (!c.deadline) return <span className="text-xs text-muted-foreground">Standard</span>;
+    const isBreached = c.status !== 'Resolved' && (c.isSLABreached || new Date(c.deadline) < now);
+    const diffHours = Math.round((new Date(c.deadline) - now) / (1000 * 60 * 60));
+    if (isBreached || diffHours < 0) {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-destructive/15 text-destructive border border-destructive/30 px-2.5 py-0.5 text-[10px] font-extrabold animate-pulse">
+          🚨 Breached ({Math.abs(diffHours)}h ago)
+        </span>
+      );
+    }
+    if (diffHours <= 6) {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 px-2.5 py-0.5 text-[10px] font-extrabold">
+          ⏱️ {diffHours}h remaining
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 px-2.5 py-0.5 text-[10px] font-bold">
+        ⏱️ {diffHours}h target
+      </span>
+    );
+  };
 
   return (
     <>
-      <PageHeader eyebrow="Records & SLA Tracking" title="Complaints directory" subtitle="Manage complaints, monitor SLA deadlines, assign field workers, and track resolution.">
-        <Button variant="outline" className="gap-2"><Filter className="h-4 w-4" /> Filters</Button>
+      <PageHeader 
+        eyebrow="Records & SLA Tracking" 
+        title="Complaints directory" 
+        subtitle="Manage complaints, monitor SLA deadlines, assign field workers, and track resolution."
+      >
+        <div className="flex items-center gap-2">
+          <span className="rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-xs font-bold text-primary">
+            {complaints.length} Total
+          </span>
+        </div>
       </PageHeader>
 
-      {/* SLA Breach Banner */}
+      {/* SLA Breach Alert Banner */}
       {breachedComplaints.length > 0 && (
-        <div className="mt-6 flex items-center justify-between rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-xs shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="grid h-9 w-9 place-items-center rounded-xl bg-destructive text-destructive-foreground font-bold shadow-md animate-pulse">
+        <div className="mt-6 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-xs shadow-sm">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-destructive text-destructive-foreground font-bold shadow-md animate-pulse shrink-0">
               🚨
             </div>
             <div>
-              <div className="font-extrabold text-destructive text-sm">
+              <div className="font-extrabold text-destructive text-sm leading-snug">
                 {breachedComplaints.length} Complaint(s) Have Breached SLA Deadlines!
               </div>
-              <div className="text-muted-foreground">
-                Urgent action required: Assign available field workers immediately to fulfill SLA commitments.
+              <div className="text-muted-foreground mt-0.5 leading-relaxed">
+                Assign available field workers immediately to fulfill SLA commitments.
               </div>
             </div>
           </div>
-          <Button size="sm" variant="destructive" onClick={() => setTab("🚨 SLA Breached")} className="rounded-xl">
+          <Button 
+            size="sm" 
+            variant="destructive" 
+            onClick={() => setTab("🚨 SLA Breached")} 
+            className="rounded-xl w-full sm:w-auto shrink-0 shadow-sm"
+          >
             View Breached ({breachedComplaints.length})
           </Button>
         </div>
       )}
 
-      <div className="mt-6 flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[240px] max-w-md">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search by ID, description..." className="pl-9" value={q} onChange={(e) => setQ(e.target.value)} />
+      {/* Filters & Search Controls */}
+      <div className="mt-6 space-y-3">
+        <div className="flex flex-col sm:flex-row gap-2.5 sm:items-center">
+          {/* Search bar */}
+          <div className="relative flex-1 min-w-0">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input 
+              placeholder="Search by ID, category, address, or issue..." 
+              className="pl-10 h-11 rounded-2xl text-xs sm:text-sm bg-card border-border" 
+              value={q} 
+              onChange={(e) => setQ(e.target.value)} 
+            />
+          </div>
+
+          {/* Department Filter */}
+          <select
+            value={filterDept}
+            onChange={(e) => setFilterDept(e.target.value)}
+            className="h-11 bg-card border border-border text-foreground rounded-2xl px-3.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary w-full sm:w-auto"
+          >
+            <option value="">All Departments</option>
+            <option value="Roads & Infrastructure Dept">Roads & Infrastructure</option>
+            <option value="Sanitation Dept">Sanitation Dept</option>
+            <option value="Electricity Dept">Electricity Dept</option>
+            <option value="Water Supply Dept">Water Supply</option>
+          </select>
         </div>
-        <select
-          value={filterDept}
-          onChange={(e) => setFilterDept(e.target.value)}
-          className="bg-card border border-border text-foreground rounded-lg px-3 py-2 text-sm focus:outline-none"
-        >
-          <option value="">All Departments</option>
-          <option value="Roads & Infrastructure Dept">Roads & Infrastructure Dept</option>
-          <option value="Sanitation Dept">Sanitation Dept</option>
-          <option value="Electricity Dept">Electricity Dept</option>
-          <option value="Water Supply Dept">Water Supply Dept</option>
-        </select>
-        <div className="flex flex-wrap gap-1 rounded-full border border-border bg-card p-1">
-          {TABS.map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${
-                tab === t 
-                  ? t.includes('Breached') ? "bg-destructive text-destructive-foreground shadow-sm" : "bg-primary text-primary-foreground shadow-sm" 
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {t}
-            </button>
-          ))}
+
+        {/* Scrollable Status Tabs on mobile */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar pt-1">
+          {TABS.map((t) => {
+            const count = t === "All" 
+              ? complaints.length 
+              : t === "🚨 SLA Breached" 
+                ? breachedComplaints.length 
+                : complaints.filter(c => c.status === t).length;
+            const isSelected = tab === t;
+
+            return (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-bold transition shrink-0 ${
+                  isSelected 
+                    ? t.includes('Breached') 
+                      ? "bg-destructive text-destructive-foreground shadow-sm" 
+                      : "bg-primary text-primary-foreground shadow-sm" 
+                    : "border border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary/40"
+                }`}
+              >
+                <span>{t}</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                  isSelected 
+                    ? "bg-white/20 text-white" 
+                    : "bg-muted text-muted-foreground"
+                }`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      <div className="mt-6 overflow-hidden rounded-3xl border border-border bg-card">
+      {/* ──────────────────────────────────────────────────────────── */}
+      {/* MOBILE CARD VIEW (Shown on mobile devices < 768px)          */}
+      {/* ──────────────────────────────────────────────────────────── */}
+      <div className="mt-5 space-y-3 md:hidden">
+        {filtered.map((c) => {
+          const assignedWorker = workers.find(w => w._id?.toString() === (c.assignedWorker?._id || c.assignedWorker)?.toString());
+          const addressText = c.location?.address || c.address || 'Address provided';
+
+          return (
+            <div 
+              key={c._id} 
+              className="rounded-2xl border border-border bg-card p-4 shadow-sm hover:border-primary/40 transition space-y-3"
+            >
+              {/* Card Top: ID & Status Chips */}
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-mono text-[11px] font-semibold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-lg">
+                  #{c._id ? c._id.slice(-6) : 'ID'}
+                </span>
+                <div className="flex items-center gap-1.5">
+                  {renderPriorityBadge(c.priority)}
+                  {renderStatusBadge(c.status)}
+                </div>
+              </div>
+
+              {/* Card Content with optional thumbnail */}
+              <div className="flex items-start gap-3">
+                {c.photo ? (
+                  <button 
+                    type="button"
+                    onClick={() => setPreviewPhoto(c.photo)}
+                    className="relative h-16 w-16 rounded-xl overflow-hidden border border-border shrink-0 bg-muted group"
+                    title="Tap to preview photo"
+                  >
+                    <img src={c.photo} alt="Issue" className="h-full w-full object-cover group-hover:scale-105 transition" />
+                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                      <Eye className="h-4 w-4 text-white drop-shadow" />
+                    </div>
+                  </button>
+                ) : (
+                  <div className="h-16 w-16 rounded-xl border border-dashed border-border bg-muted/40 shrink-0 flex items-center justify-center text-muted-foreground">
+                    <ImageIcon className="h-5 w-5" />
+                  </div>
+                )}
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="font-bold text-xs text-foreground">{c.issueType}</span>
+                    {c.assignedDept && (
+                      <span className="text-[10px] text-muted-foreground border border-border/70 rounded-md px-1.5 py-0.2">
+                        {c.assignedDept.replace(' Dept', '')}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-foreground/90 font-medium mt-1 line-clamp-2 leading-relaxed">
+                    {c.description}
+                  </p>
+                  <div className="flex items-center gap-1 text-[11px] text-muted-foreground mt-1 truncate">
+                    <MapPin className="h-3 w-3 text-primary shrink-0" />
+                    <span className="truncate">{addressText}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* SLA Target Banner on Card */}
+              <div className="flex items-center justify-between border-t border-border/50 pt-2.5 text-xs">
+                <span className="text-[11px] text-muted-foreground font-medium">SLA Deadline:</span>
+                {renderSlaBadge(c)}
+              </div>
+
+              {/* Worker Action Footer */}
+              <div className="border-t border-border/50 pt-2.5">
+                {c.status === 'Pending' ? (
+                  <Button 
+                    onClick={() => setSelectedComplaint(c)} 
+                    size="sm" 
+                    className="w-full rounded-xl font-bold text-xs h-9 shadow-sm"
+                  >
+                    <UserPlus className="h-3.5 w-3.5 mr-1.5" /> Assign Field Worker
+                  </Button>
+                ) : (
+                  <div className="flex items-center justify-between bg-surface rounded-xl px-3 py-2 text-xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Briefcase className="h-3.5 w-3.5 text-primary shrink-0" />
+                      <span className="font-semibold text-foreground truncate">
+                        {assignedWorker ? assignedWorker.name : 'Worker Assigned'}
+                      </span>
+                    </div>
+                    {c.status !== 'Resolved' && (
+                      <button 
+                        onClick={() => setSelectedComplaint(c)}
+                        className="text-[11px] font-bold text-primary hover:underline shrink-0 ml-2"
+                      >
+                        Reassign
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+        {filtered.length === 0 && (
+          <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center text-xs text-muted-foreground">
+            No complaints match your selection.
+          </div>
+        )}
+      </div>
+
+      {/* ──────────────────────────────────────────────────────────── */}
+      {/* DESKTOP TABLE VIEW (Shown on md: screens and larger)        */}
+      {/* ──────────────────────────────────────────────────────────── */}
+      <div className="mt-6 hidden md:block overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-surface text-xs uppercase tracking-widest text-muted-foreground">
+            <thead className="bg-surface text-xs uppercase tracking-widest text-muted-foreground border-b border-border">
               <tr>
-                {["ID", "Issue", "Category", "SLA Target", "Severity", "Status", "Assigned"].map((h) => (
-                  <th key={h} className="px-6 py-3 text-left font-medium">{h}</th>
-                ))}
+                <th className="px-5 py-3.5 text-left font-medium">Photo</th>
+                <th className="px-5 py-3.5 text-left font-medium">ID</th>
+                <th className="px-5 py-3.5 text-left font-medium">Issue / Description</th>
+                <th className="px-5 py-3.5 text-left font-medium">Category</th>
+                <th className="px-5 py-3.5 text-left font-medium">SLA Target</th>
+                <th className="px-5 py-3.5 text-left font-medium">Severity</th>
+                <th className="px-5 py-3.5 text-left font-medium">Status</th>
+                <th className="px-5 py-3.5 text-left font-medium">Worker</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-border">
               {filtered.map((c) => {
                 const assignedWorker = workers.find(w => w._id?.toString() === (c.assignedWorker?._id || c.assignedWorker)?.toString());
-                const isBreached = c.status !== 'Resolved' && (c.isSLABreached || (c.deadline && new Date(c.deadline) < now));
-                
-                // Calculate hours remaining or overdue
-                let slaBadge = null;
-                if (c.deadline) {
-                  const diffHours = Math.round((new Date(c.deadline) - now) / (1000 * 60 * 60));
-                  if (isBreached || diffHours < 0) {
-                    slaBadge = <span className="rounded-full bg-destructive/15 text-destructive border border-destructive/30 px-2.5 py-0.5 text-[10px] font-extrabold animate-pulse">🚨 Breached ({Math.abs(diffHours)}h ago)</span>;
-                  } else if (diffHours <= 6) {
-                    slaBadge = <span className="rounded-full bg-amber-500/15 text-amber-600 border border-amber-500/30 px-2.5 py-0.5 text-[10px] font-extrabold">⏱️ {diffHours}h remaining</span>;
-                  } else {
-                    slaBadge = <span className="rounded-full bg-emerald-500/15 text-emerald-600 border border-emerald-500/30 px-2.5 py-0.5 text-[10px] font-bold">⏱️ {diffHours}h target</span>;
-                  }
-                }
+                const addressText = c.location?.address || c.address || 'Address provided';
 
                 return (
-                  <tr key={c._id} className="border-t border-border transition hover:bg-secondary/40">
-                    <td className="px-6 py-4 font-mono text-xs text-muted-foreground truncate max-w-[120px]">#{c._id}</td>
-                    <td className="px-6 py-4 font-medium">{c.description}</td>
-                    <td className="px-6 py-4 text-muted-foreground">{c.issueType}</td>
-                    <td className="px-6 py-4">{slaBadge || <span className="text-xs text-muted-foreground">Standard</span>}</td>
-                    <td className="px-6 py-4">
-                      <span className={`rounded-full px-2 py-0.5 text-xs ${
-                        c.priority === "Critical" ? "bg-destructive/15 text-destructive" :
-                        c.priority === "High" ? "bg-accent/20 text-accent-foreground" :
-                        c.priority === "Medium" ? "bg-warning/20" : "bg-secondary text-muted-foreground"
-                      }`}>{c.priority}</span>
+                  <tr key={c._id} className="transition hover:bg-secondary/40">
+                    <td className="px-5 py-3.5">
+                      {c.photo ? (
+                        <button
+                          type="button"
+                          onClick={() => setPreviewPhoto(c.photo)}
+                          className="h-10 w-10 rounded-lg overflow-hidden border border-border hover:ring-2 hover:ring-primary transition block"
+                          title="Preview full photo"
+                        >
+                          <img src={c.photo} alt="Issue" className="h-full w-full object-cover" />
+                        </button>
+                      ) : (
+                        <div className="h-10 w-10 rounded-lg border border-dashed border-border flex items-center justify-center text-muted-foreground">
+                          <ImageIcon className="h-4 w-4" />
+                        </div>
+                      )}
                     </td>
-                    <td className="px-6 py-4 text-xs">{c.status}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-5 py-3.5 font-mono text-xs text-muted-foreground truncate max-w-[100px]">
+                      #{c._id ? c._id.slice(-6) : 'ID'}
+                    </td>
+                    <td className="px-5 py-3.5 max-w-[280px]">
+                      <div className="font-medium text-foreground truncate">{c.description}</div>
+                      <div className="text-[11px] text-muted-foreground truncate flex items-center gap-1 mt-0.5">
+                        <MapPin className="h-3 w-3 text-primary shrink-0" />
+                        <span>{addressText}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3.5 text-xs font-semibold text-foreground whitespace-nowrap">
+                      {c.issueType}
+                    </td>
+                    <td className="px-5 py-3.5 whitespace-nowrap">
+                      {renderSlaBadge(c)}
+                    </td>
+                    <td className="px-5 py-3.5 whitespace-nowrap">
+                      {renderPriorityBadge(c.priority)}
+                    </td>
+                    <td className="px-5 py-3.5 whitespace-nowrap">
+                      {renderStatusBadge(c.status)}
+                    </td>
+                    <td className="px-5 py-3.5 whitespace-nowrap">
                       {c.status === 'Pending' ? (
-                        <Button onClick={() => setSelectedComplaint(c)} size="sm" className="rounded-full">
-                          Assign
+                        <Button 
+                          onClick={() => setSelectedComplaint(c)} 
+                          size="sm" 
+                          className="rounded-full text-xs font-bold gap-1 shadow-sm"
+                        >
+                          <UserPlus className="h-3 w-3" /> Assign
                         </Button>
                       ) : (
-                        <span className="text-xs">{assignedWorker ? assignedWorker.name : 'Assigned'}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium text-foreground bg-surface/80 px-2 py-0.5 rounded-lg border border-border/60">
+                            {assignedWorker ? assignedWorker.name : 'Worker Assigned'}
+                          </span>
+                          {c.status !== 'Resolved' && (
+                            <Button 
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedComplaint(c)}
+                              className="h-7 px-2.5 rounded-lg text-[11px] font-bold text-primary hover:border-primary/60 hover:bg-primary/5 transition"
+                            >
+                              Reassign
+                            </Button>
+                          )}
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -293,13 +598,38 @@ function ComplaintsView({ complaints, workers, setSelectedComplaint }) {
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-10 text-center text-sm text-muted-foreground">No complaints match your selection.</td>
+                  <td colSpan={8} className="px-6 py-12 text-center text-sm text-muted-foreground">
+                    No complaints match your selection.
+                  </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* Full Photo Preview Lightbox Modal */}
+      {previewPhoto && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in"
+          onClick={() => setPreviewPhoto(null)}
+        >
+          <div 
+            className="relative max-w-2xl max-h-[85vh] rounded-3xl overflow-hidden border border-white/20 bg-black shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <img src={previewPhoto} alt="Full Issue Photo" className="w-full h-full object-contain max-h-[80vh]" />
+            <button 
+              type="button"
+              onClick={() => setPreviewPhoto(null)}
+              className="absolute top-3 right-3 rounded-full bg-black/70 p-2 text-white hover:bg-black transition shadow-lg"
+              title="Close preview"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -307,52 +637,142 @@ function ComplaintsView({ complaints, workers, setSelectedComplaint }) {
 // ────────────────────────────────────────────────────────────────
 // HEATMAP SUBPAGE
 // ────────────────────────────────────────────────────────────────
-function HeatmapView({ complaints }) {
+function HeatmapView({ complaints = [], setSelectedComplaint }) {
   const [selectedHotspot, setSelectedHotspot] = useState(null);
 
-  const stats = [
-    { w: "Vashi Sector 15", c: complaints.filter(c => c.address?.includes("Vashi")).length },
-    { w: "Kharghar", c: complaints.filter(c => c.address?.includes("Kharghar")).length },
-    { w: "Belapur", c: complaints.filter(c => c.address?.includes("Belapur")).length },
-    { w: "Nerul", c: complaints.filter(c => c.address?.includes("Nerul")).length },
-  ].sort((a,b) => b.c - a.c);
+  // Compute hotspot areas dynamically using full location address
+  const stats = useMemo(() => {
+    const areas = [
+      "Vashi",
+      "Kharghar",
+      "Belapur",
+      "Nerul",
+      "Panvel",
+      "Seawoods",
+      "Kopar Khairane",
+      "Ghansoli",
+      "Airoli"
+    ];
+
+    const results = areas.map(area => {
+      const matched = complaints.filter(c => {
+        const addr = (c.location?.address || c.address || '').toLowerCase();
+        return addr.includes(area.toLowerCase());
+      });
+      return {
+        w: `${area} Ward`,
+        name: area,
+        c: matched.length,
+        resolved: matched.filter(c => c.status === 'Resolved').length,
+        active: matched.filter(c => c.status !== 'Resolved').length
+      };
+    }).filter(a => a.c > 0).sort((a, b) => b.c - a.c);
+
+    // If no specific area matched or there are general complaints
+    if (results.length === 0) {
+      return [
+        { 
+          w: "Navi Mumbai Municipal Zone", 
+          name: "Central", 
+          c: complaints.length, 
+          resolved: complaints.filter(c => c.status === 'Resolved').length, 
+          active: complaints.filter(c => c.status !== 'Resolved').length 
+        }
+      ];
+    }
+    return results;
+  }, [complaints]);
 
   return (
     <>
-      <PageHeader eyebrow="Geospatial" title="City heatmap" subtitle="Real-time geo-coordinates mapping of complaints."></PageHeader>
+      <PageHeader 
+        eyebrow="Geospatial Intelligence" 
+        title="City Grievance Heatmap" 
+        subtitle="Live geospatial density and coordinate mapping of citizen complaints across municipal zones."
+      />
+
       <div className="mt-8 grid gap-6 lg:grid-cols-[1.8fr_1fr]">
-        <div className="rounded-3xl border border-border bg-card p-6">
-          <MapView complaints={complaints} height="520px" onPointClick={setSelectedHotspot} />
+        <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+          <MapView complaints={complaints} height="560px" onPointClick={setSelectedHotspot} />
         </div>
 
-        <div className="rounded-3xl border border-border bg-card p-6">
-          <div className="font-display text-xl">Hotspot areas</div>
-          <div className="text-xs text-muted-foreground">By volume (30d)</div>
-          <div className="mt-5 space-y-3">
-            {stats.map((w) => {
-              const max = stats[0].c || 1;
-              const pct = (w.c / max) * 100;
-              return (
-                <div key={w.w}>
-                  <div className="flex items-center justify-between text-sm">
-                    <span>{w.w}</span>
-                    <span className="text-muted-foreground">{w.c} complaints</span>
-                  </div>
-                  <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-secondary">
-                    <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          {selectedHotspot && (
-            <div className="mt-6 rounded-xl border border-border bg-surface p-4 text-xs">
-              <div className="font-medium text-foreground">Selected complaint detail</div>
-              <div className="mt-2 text-muted-foreground">
-                <span className="font-bold">Type:</span> {selectedHotspot.issueType} <br/>
-                <span className="font-bold">Address:</span> {selectedHotspot.address} <br/>
-                <span className="font-bold">Description:</span> {selectedHotspot.description}
+        <div className="rounded-3xl border border-border bg-card p-6 shadow-sm flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-display text-xl font-bold text-foreground">Hotspot Areas</div>
+                <div className="text-xs text-muted-foreground mt-0.5">Active grievance cluster density</div>
               </div>
+              <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                {complaints.length} Total Points
+              </span>
+            </div>
+
+            <div className="mt-5 space-y-3.5">
+              {stats.map((w) => {
+                const max = stats[0]?.c || 1;
+                const pct = Math.round((w.c / max) * 100);
+                return (
+                  <div key={w.w} className="space-y-1.5 p-2 rounded-xl hover:bg-secondary/40 transition">
+                    <div className="flex items-center justify-between text-xs sm:text-sm">
+                      <span className="font-bold text-foreground flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5 text-primary" /> {w.w}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-muted-foreground">{w.active} active</span>
+                        <span className="font-mono font-bold text-foreground text-xs">{w.c} cases</span>
+                      </div>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-secondary">
+                      <div 
+                        className="h-full rounded-full bg-gradient-to-r from-primary to-amber-500 transition-all duration-500" 
+                        style={{ width: `${Math.max(5, pct)}%` }} 
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {selectedHotspot && (
+            <div className="mt-6 rounded-2xl border border-border bg-surface/80 p-4 text-xs space-y-2.5 shadow-sm animate-in fade-in">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-sm text-foreground flex items-center gap-1.5">
+                  <Flame className="h-4 w-4 text-amber-500" />
+                  <span>Selected Grievance</span>
+                </span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  selectedHotspot.status === 'Resolved'
+                    ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                    : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                }`}>
+                  {selectedHotspot.status}
+                </span>
+              </div>
+
+              <div className="space-y-1 text-muted-foreground">
+                <div><strong className="text-foreground">Category:</strong> {selectedHotspot.issueType}</div>
+                <div><strong className="text-foreground">Severity:</strong> {selectedHotspot.priority}</div>
+                <div className="line-clamp-2"><strong className="text-foreground">Address:</strong> {selectedHotspot.location?.address || selectedHotspot.address || 'Navi Mumbai'}</div>
+                {selectedHotspot.description && (
+                  <p className="text-[11px] text-muted-foreground italic line-clamp-2 pt-1 border-t border-border/40">
+                    "{selectedHotspot.description}"
+                  </p>
+                )}
+              </div>
+
+              {setSelectedComplaint && selectedHotspot.status !== 'Resolved' && (
+                <div className="pt-2">
+                  <Button 
+                    size="sm" 
+                    onClick={() => setSelectedComplaint(selectedHotspot)}
+                    className="w-full rounded-xl text-xs font-bold h-9 shadow-sm"
+                  >
+                    {selectedHotspot.assignedWorker ? 'Reassign Field Worker' : 'Assign Field Worker'}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -364,11 +784,11 @@ function HeatmapView({ complaints }) {
 // ────────────────────────────────────────────────────────────────
 // WORKERS SUBPAGE
 // ────────────────────────────────────────────────────────────────
-function WorkersView({ workers, complaints, onAddWorker }) {
+function WorkersView({ workers, complaints, onAddWorker, onEditWorker, onDeleteWorker }) {
   return (
     <>
-      <PageHeader eyebrow="Roster" title="Field workers" subtitle="Assign tasks, monitor workload, and review active tasks.">
-        <Button onClick={onAddWorker} className="gap-2"><UserPlus className="h-4 w-4" /> Add worker</Button>
+      <PageHeader eyebrow="Roster" title="Field workers" subtitle="Assign tasks, monitor workload, review active tasks, and manage credentials.">
+        <Button onClick={onAddWorker} className="gap-2 font-bold rounded-xl shadow-sm text-xs sm:text-sm"><UserPlus className="h-4 w-4" /> Add worker</Button>
       </PageHeader>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -377,33 +797,53 @@ function WorkersView({ workers, complaints, onAddWorker }) {
           const activeTasks = complaints.filter(c => (c.assignedWorker?._id || c.assignedWorker)?.toString() === wId && c.status === 'In Progress').length;
           const resolvedTasks = complaints.filter(c => (c.assignedWorker?._id || c.assignedWorker)?.toString() === wId && c.status === 'Resolved').length;
           return (
-            <div key={w._id} className="rounded-3xl border border-border bg-card p-5 shadow-elev">
+            <div key={w._id} className="rounded-3xl border border-border bg-card p-5 shadow-elev space-y-4">
               <div className="flex items-center gap-3">
                 <div className="grid h-11 w-11 place-items-center rounded-full bg-hero font-display text-sm text-white font-bold shrink-0">
                   {w.name ? w.name.split(" ").map((n) => n[0]).join("") : "W"}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate font-medium text-foreground">{w.name}</div>
-                  <div className="text-xs text-muted-foreground">{w.department || 'General Duty'}</div>
+                  <div className="truncate font-bold text-foreground text-sm">{w.name}</div>
+                  <div className="text-xs text-muted-foreground truncate">{w.department || 'General Duty'}</div>
                 </div>
               </div>
-              <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+              <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="rounded-xl border border-border bg-surface p-3">
-                  <div className="text-muted-foreground">Active</div>
-                  <div className="mt-1 font-display text-xl text-primary">{activeTasks}</div>
+                  <div className="text-muted-foreground">Active Tasks</div>
+                  <div className="mt-1 font-display text-xl text-primary font-bold">{activeTasks}</div>
                 </div>
                 <div className="rounded-xl border border-border bg-surface p-3">
                   <div className="text-muted-foreground">Resolved</div>
-                  <div className="mt-1 font-display text-xl text-success">{resolvedTasks}</div>
+                  <div className="mt-1 font-display text-xl text-success font-bold">{resolvedTasks}</div>
                 </div>
               </div>
-              <div className="mt-4 flex gap-2">
-                <div className="text-xs text-muted-foreground truncate flex-1">
+              <div className="flex flex-col sm:flex-row gap-1 text-xs text-muted-foreground pt-1 border-t border-border/50">
+                <div className="truncate flex-1 font-mono">
                   📞 {w.phone || 'N/A'}
                 </div>
-                <div className="text-xs text-muted-foreground truncate flex-1 text-right">
+                <div className="truncate flex-1 text-left sm:text-right">
                   ✉️ {w.email || 'N/A'}
                 </div>
+              </div>
+              <div className="flex items-center justify-between border-t border-border/50 pt-3">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => onEditWorker && onEditWorker(w)}
+                  className="rounded-xl text-xs h-8 gap-1.5 font-medium"
+                >
+                  <Edit2 className="h-3 w-3 text-primary" />
+                  <span>Edit Credentials</span>
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  onClick={() => onDeleteWorker && onDeleteWorker(w)}
+                  className="rounded-xl text-xs h-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 px-2.5"
+                  title="Delete worker"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
               </div>
             </div>
           );
@@ -699,6 +1139,9 @@ function SettingsView() {
 // MAIN ROUTER CONTAINER
 // ────────────────────────────────────────────────────────────────
 export function AdminDashboard() {
+  const { currentUser } = useAuth();
+  const { role, can } = useAdminRole();
+  const meta = ROLE_META[role];
   const { complaints, assignWorker } = useComplaints();
   const [workers, setWorkers] = useState([]);
   const [selectedComplaint, setSelectedComplaint] = useState(null);
@@ -708,7 +1151,25 @@ export function AdminDashboard() {
   const [showAddWorker, setShowAddWorker] = useState(false);
   const [wName, setWName] = useState('');
   const [wPhone, setWPhone] = useState('');
+  const [wEmail, setWEmail] = useState('');
+  const [wPassword, setWPassword] = useState('');
   const [wDept, setWDept] = useState('Roads & Infrastructure Dept');
+
+  // Edit Worker Modal State
+  const [editingWorker, setEditingWorker] = useState(null);
+  const [editWName, setEditWName] = useState('');
+  const [editWPhone, setEditWPhone] = useState('');
+  const [editWEmail, setEditWEmail] = useState('');
+  const [editWDept, setEditWDept] = useState('Roads & Infrastructure Dept');
+  const [editWPassword, setEditWPassword] = useState('');
+
+  // Delete Worker State
+  const [deletingWorker, setDeletingWorker] = useState(null);
+
+  const currentDept = currentUser?.department || (role === 'dept_admin' && meta?.dept ? `${meta.dept} Dept` : null);
+  const displayedWorkers = (role === 'dept_admin' && currentDept)
+    ? workers.filter(w => !w.department || w.department.toLowerCase().includes(currentDept.toLowerCase()) || currentDept.toLowerCase().includes(w.department.toLowerCase()))
+    : workers;
 
   const fetchWorkers = async () => {
     try {
@@ -739,17 +1200,63 @@ export function AdminDashboard() {
     e.preventDefault();
     if (!wName || !wPhone) return;
     try {
+      const targetDept = (role === 'dept_admin' && currentDept) ? currentDept : wDept;
       await api.post('/admin/workers', {
         name: wName,
         phone: wPhone,
-        department: wDept
+        email: wEmail,
+        department: targetDept,
+        password: wPassword.trim() || undefined
       });
       setShowAddWorker(false);
       setWName('');
       setWPhone('');
+      setWEmail('');
+      setWPassword('');
       fetchWorkers();
     } catch (error) {
       alert(error.response?.data?.message || 'Failed to create worker');
+    }
+  };
+
+  const handleStartEditWorker = (worker) => {
+    setEditingWorker(worker);
+    setEditWName(worker.name || '');
+    setEditWPhone(worker.phone || '');
+    setEditWEmail(worker.email || '');
+    setEditWDept(worker.department || currentDept || 'Roads & Infrastructure Dept');
+    setEditWPassword('');
+  };
+
+  const handleUpdateWorker = async (e) => {
+    e.preventDefault();
+    if (!editingWorker) return;
+    try {
+      const payload = {
+        name: editWName,
+        phone: editWPhone,
+        email: editWEmail,
+        department: editWDept
+      };
+      if (editWPassword.trim().length > 0) {
+        payload.password = editWPassword.trim();
+      }
+      await api.put(`/admin/workers/${editingWorker._id}`, payload);
+      setEditingWorker(null);
+      fetchWorkers();
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to update worker credentials');
+    }
+  };
+
+  const handleDeleteWorker = async () => {
+    if (!deletingWorker) return;
+    try {
+      await api.delete(`/admin/workers/${deletingWorker._id}`);
+      setDeletingWorker(null);
+      fetchWorkers();
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to delete worker');
     }
   };
 
@@ -758,22 +1265,37 @@ export function AdminDashboard() {
       <Routes>
         <Route path="/" element={
           <AdminShell>
-            <OverviewView complaints={complaints} workers={workers} setSelectedComplaint={setSelectedComplaint} />
+            <OverviewView complaints={complaints} workers={displayedWorkers} setSelectedComplaint={setSelectedComplaint} />
           </AdminShell>
         } />
         <Route path="/complaints" element={
           <AdminShell>
-            <ComplaintsView complaints={complaints} workers={workers} setSelectedComplaint={setSelectedComplaint} />
+            <ComplaintsView complaints={complaints} workers={displayedWorkers} setSelectedComplaint={setSelectedComplaint} />
           </AdminShell>
         } />
         <Route path="/heatmap" element={
           <AdminShell>
-            <HeatmapView complaints={complaints} />
+            <HeatmapView complaints={complaints} setSelectedComplaint={setSelectedComplaint} />
           </AdminShell>
         } />
         <Route path="/workers" element={
           <AdminShell>
-            <WorkersView workers={workers} complaints={complaints} onAddWorker={() => setShowAddWorker(true)} />
+            {can('admin.workers') ? (
+              <WorkersView 
+                workers={displayedWorkers} 
+                complaints={complaints} 
+                onAddWorker={() => setShowAddWorker(true)} 
+                onEditWorker={handleStartEditWorker} 
+                onDeleteWorker={(w) => setDeletingWorker(w)}
+              />
+            ) : (
+              <AccessDenied />
+            )}
+          </AdminShell>
+        } />
+        <Route path="/users" element={
+          <AdminShell>
+            <RoleManagement />
           </AdminShell>
         } />
         <Route path="/analytics" element={
@@ -788,29 +1310,62 @@ export function AdminDashboard() {
         } />
       </Routes>
       
-      {/* Assign Modal Wrapper */}
+      {/* Assign / Reassign Modal Wrapper */}
       {selectedComplaint && (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-6 backdrop-blur-sm">
-          <form onSubmit={handleAssign} className="glass-panel p-8 rounded-3xl border border-border max-w-md w-full shadow-2xl space-y-4 bg-card">
-            <h3 className="font-display text-xl font-bold text-foreground">Assign field worker</h3>
-            <p className="text-muted-foreground text-xs">Choose a verified field worker to assign the resolution of complaint.</p>
+        <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4 sm:p-6 backdrop-blur-sm overflow-y-auto">
+          <form onSubmit={handleAssign} className="glass-panel p-5 sm:p-8 rounded-2xl sm:rounded-3xl border border-border max-w-md w-full shadow-2xl space-y-4 bg-card my-auto">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h3 className="font-display text-lg sm:text-xl font-bold text-foreground">
+                  {selectedComplaint.assignedWorker ? 'Reassign Field Worker' : 'Assign Field Worker'}
+                </h3>
+                <p className="text-muted-foreground text-xs mt-0.5">
+                  {selectedComplaint.assignedWorker 
+                    ? 'Select a new verified field worker to take over this complaint.' 
+                    : 'Choose a verified field worker to assign this complaint.'}
+                </p>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => { setSelectedComplaint(null); setAssignedWorkerId(''); }}
+                className="rounded-full p-1 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="rounded-xl border border-border/60 bg-muted/30 p-2.5 text-xs text-muted-foreground">
+              <span className="font-semibold text-foreground">Issue: </span> 
+              {selectedComplaint.issueType} — {selectedComplaint.description}
+            </div>
+
+            {selectedComplaint.assignedWorker && (
+              <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-2.5 text-xs text-amber-700 dark:text-amber-300">
+                <span className="font-semibold">Currently Assigned: </span>
+                {displayedWorkers.find(w => w._id?.toString() === (selectedComplaint.assignedWorker?._id || selectedComplaint.assignedWorker)?.toString())?.name || 'Worker Assigned'}
+              </div>
+            )}
 
             <div>
-              <label className="block text-xs text-muted-foreground uppercase mb-1">Select worker</label>
-              <select value={assignedWorkerId} onChange={e => setAssignedWorkerId(e.target.value)} className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary">
+              <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Select worker</label>
+              <select 
+                value={assignedWorkerId} 
+                onChange={e => setAssignedWorkerId(e.target.value)} 
+                className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              >
                 <option value="">-- Choose Worker --</option>
-                {workers.map(w => (
+                {displayedWorkers.map(w => (
                   <option key={w._id} value={w._id}>{w.name} ({w.department})</option>
                 ))}
               </select>
             </div>
 
-            <div className="flex gap-4 mt-6">
-              <Button type="submit" disabled={!assignedWorkerId} className="flex-1 rounded-full">
-                Confirm
-              </Button>
-              <Button type="button" variant="outline" onClick={() => { setSelectedComplaint(null); setAssignedWorkerId(''); }} className="flex-1 rounded-full">
+            <div className="flex gap-2.5 pt-2">
+              <Button type="button" variant="outline" onClick={() => { setSelectedComplaint(null); setAssignedWorkerId(''); }} className="flex-1 rounded-xl text-xs h-10">
                 Cancel
+              </Button>
+              <Button type="submit" disabled={!assignedWorkerId} className="flex-1 rounded-xl text-xs h-10 font-bold">
+                Confirm
               </Button>
             </div>
           </form>
@@ -819,40 +1374,243 @@ export function AdminDashboard() {
 
       {/* Add Worker Modal */}
       {showAddWorker && (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-6 backdrop-blur-sm">
-          <form onSubmit={handleCreateWorker} className="glass-panel p-8 rounded-3xl border border-border max-w-md w-full shadow-2xl space-y-4 bg-card">
-            <h3 className="font-display text-xl font-bold text-foreground">Add new field worker</h3>
-            <p className="text-muted-foreground text-xs">Create an account for a new municipal field worker.</p>
+        <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4 sm:p-6 backdrop-blur-sm overflow-y-auto">
+          <form onSubmit={handleCreateWorker} autoComplete="off" className="glass-panel p-5 sm:p-8 rounded-2xl sm:rounded-3xl border border-border max-w-md w-full shadow-2xl space-y-4 bg-card my-auto">
+            {/* Dummy inputs to prevent browser autofilling saved admin credentials */}
+            <input type="text" name="dummy_username_add" style={{ display: 'none' }} tabIndex={-1} autoComplete="off" />
+            <input type="password" name="dummy_password_add" style={{ display: 'none' }} tabIndex={-1} autoComplete="off" />
+
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h3 className="font-display text-lg sm:text-xl font-bold text-foreground">Add new field worker</h3>
+                <p className="text-muted-foreground text-xs mt-0.5">Create an account with all credentials for a field worker.</p>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setShowAddWorker(false)}
+                className="rounded-full p-1 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
 
             <div className="space-y-3">
               <div>
-                <label className="block text-xs text-muted-foreground uppercase mb-1">Full name</label>
-                <Input value={wName} onChange={e => setWName(e.target.value)} required placeholder="e.g. Ramesh Shinde" className="rounded-xl" />
+                <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Full name *</label>
+                <Input 
+                  name="field_worker_fullname"
+                  autoComplete="off"
+                  value={wName} 
+                  onChange={e => setWName(e.target.value)} 
+                  required 
+                  placeholder="e.g. Ramesh Shinde" 
+                  className="rounded-xl h-10 text-xs sm:text-sm" 
+                />
               </div>
               <div>
-                <label className="block text-xs text-muted-foreground uppercase mb-1">Phone number</label>
-                <Input value={wPhone} onChange={e => setWPhone(e.target.value)} required placeholder="e.g. 9876543219" className="rounded-xl" />
+                <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Phone number (Login Username) *</label>
+                <Input 
+                  type="tel"
+                  name="field_worker_phone_contact"
+                  autoComplete="new-off"
+                  value={wPhone} 
+                  onChange={e => setWPhone(e.target.value)} 
+                  required 
+                  placeholder="e.g. 9876543219" 
+                  className="rounded-xl h-10 text-xs sm:text-sm" 
+                />
               </div>
               <div>
-                <label className="block text-xs text-muted-foreground uppercase mb-1">Department</label>
-                <select value={wDept} onChange={e => setWDept(e.target.value)} className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary">
-                  <option value="Roads & Infrastructure Dept">Roads & Infrastructure Dept</option>
-                  <option value="Sanitation Dept">Sanitation Dept</option>
-                  <option value="Electricity Dept">Electricity Dept</option>
-                  <option value="Water Supply Dept">Water Supply Dept</option>
-                </select>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Email address</label>
+                <Input 
+                  type="email"
+                  name="field_worker_email_contact"
+                  autoComplete="off"
+                  value={wEmail} 
+                  onChange={e => setWEmail(e.target.value)} 
+                  placeholder="e.g. ramesh.field@smartcity.gov" 
+                  className="rounded-xl h-10 text-xs sm:text-sm" 
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Initial Password</label>
+                <Input 
+                  type="password" 
+                  name="field_worker_temp_password"
+                  autoComplete="new-password"
+                  value={wPassword} 
+                  onChange={e => setWPassword(e.target.value)} 
+                  placeholder="Defaults to: password" 
+                  className="rounded-xl h-10 text-xs sm:text-sm" 
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Department</label>
+                {role === 'dept_admin' && currentDept ? (
+                  <div className="px-3.5 py-2.5 rounded-xl border border-border bg-muted/40 text-xs sm:text-sm font-medium text-foreground">
+                    {currentDept} <span className="text-[11px] text-muted-foreground">(Your assigned department)</span>
+                  </div>
+                ) : (
+                  <select 
+                    value={wDept} 
+                    onChange={e => setWDept(e.target.value)} 
+                    className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="Roads & Infrastructure Dept">Roads & Infrastructure Dept</option>
+                    <option value="Sanitation Dept">Sanitation Dept</option>
+                    <option value="Electricity Dept">Electricity Dept</option>
+                    <option value="Water Supply Dept">Water Supply Dept</option>
+                  </select>
+                )}
               </div>
             </div>
 
-            <div className="flex gap-4 mt-6">
-              <Button type="submit" className="flex-1 rounded-full">
-                Create worker
-              </Button>
-              <Button type="button" variant="outline" onClick={() => setShowAddWorker(false)} className="flex-1 rounded-full">
+            <div className="flex gap-2.5 pt-2">
+              <Button type="button" variant="outline" onClick={() => setShowAddWorker(false)} className="flex-1 rounded-xl text-xs h-10">
                 Cancel
+              </Button>
+              <Button type="submit" className="flex-1 rounded-xl text-xs h-10 font-bold">
+                Create worker
               </Button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Edit Worker Modal */}
+      {editingWorker && (
+        <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4 sm:p-6 backdrop-blur-sm overflow-y-auto">
+          <form onSubmit={handleUpdateWorker} autoComplete="off" className="glass-panel p-5 sm:p-8 rounded-2xl sm:rounded-3xl border border-border max-w-md w-full shadow-2xl space-y-4 bg-card my-auto">
+            <input type="text" name="dummy_username_edit" style={{ display: 'none' }} tabIndex={-1} autoComplete="off" />
+            <input type="password" name="dummy_password_edit" style={{ display: 'none' }} tabIndex={-1} autoComplete="off" />
+
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h3 className="font-display text-lg sm:text-xl font-bold text-foreground">Edit Worker Credentials</h3>
+                <p className="text-muted-foreground text-xs mt-0.5">Update worker information and set new login password.</p>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setEditingWorker(null)}
+                className="rounded-full p-1 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Full name</label>
+                <Input 
+                  name="field_worker_edit_name"
+                  autoComplete="off"
+                  value={editWName} 
+                  onChange={e => setEditWName(e.target.value)} 
+                  required 
+                  placeholder="Worker Name" 
+                  className="rounded-xl h-10 text-xs sm:text-sm" 
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Phone number (Login ID)</label>
+                <Input 
+                  type="tel"
+                  name="field_worker_edit_phone"
+                  autoComplete="new-off"
+                  value={editWPhone} 
+                  onChange={e => setEditWPhone(e.target.value)} 
+                  required 
+                  placeholder="10 digit phone" 
+                  className="rounded-xl h-10 text-xs sm:text-sm" 
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Email address</label>
+                <Input 
+                  type="email" 
+                  name="field_worker_edit_email"
+                  autoComplete="off"
+                  value={editWEmail} 
+                  onChange={e => setEditWEmail(e.target.value)} 
+                  placeholder="worker@smartcity.gov" 
+                  className="rounded-xl h-10 text-xs sm:text-sm" 
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Department</label>
+                {role === 'dept_admin' && currentDept ? (
+                  <div className="px-3.5 py-2.5 rounded-xl border border-border bg-muted/40 text-xs sm:text-sm font-medium text-foreground">
+                    {currentDept} <span className="text-[11px] text-muted-foreground">(Your assigned department)</span>
+                  </div>
+                ) : (
+                  <select 
+                    value={editWDept} 
+                    onChange={e => setEditWDept(e.target.value)} 
+                    className="w-full bg-background border border-border rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="Roads & Infrastructure Dept">Roads & Infrastructure Dept</option>
+                    <option value="Sanitation Dept">Sanitation Dept</option>
+                    <option value="Electricity Dept">Electricity Dept</option>
+                    <option value="Water Supply Dept">Water Supply Dept</option>
+                  </select>
+                )}
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Reset Password</label>
+                <Input 
+                  type="password" 
+                  name="field_worker_edit_password"
+                  autoComplete="new-password"
+                  value={editWPassword} 
+                  onChange={e => setEditWPassword(e.target.value)} 
+                  placeholder="Leave blank to keep existing password" 
+                  className="rounded-xl h-10 text-xs sm:text-sm" 
+                />
+                <p className="text-[11px] text-muted-foreground mt-0.5">Only type here if you wish to overwrite their current password.</p>
+              </div>
+            </div>
+
+            <div className="flex gap-2.5 pt-2">
+              <Button type="button" variant="outline" onClick={() => setEditingWorker(null)} className="flex-1 rounded-xl text-xs h-10">
+                Cancel
+              </Button>
+              <Button type="submit" className="flex-1 rounded-xl text-xs h-10 font-bold">
+                Save Changes
+              </Button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Delete Worker Confirmation Modal */}
+      {deletingWorker && (
+        <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4 sm:p-6 backdrop-blur-sm overflow-y-auto">
+          <div className="glass-panel p-5 sm:p-7 rounded-2xl sm:rounded-3xl border border-destructive/30 max-w-md w-full shadow-2xl space-y-4 bg-card my-auto">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-destructive/10 text-destructive flex items-center justify-center shrink-0">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-display text-lg font-bold text-foreground">Delete Field Worker?</h3>
+                <p className="text-xs text-muted-foreground">This worker account will be permanently removed.</p>
+              </div>
+            </div>
+
+            <div className="rounded-xl bg-destructive/5 border border-destructive/15 p-3 text-xs text-muted-foreground space-y-1">
+              <div><strong className="text-foreground">Name:</strong> {deletingWorker.name}</div>
+              <div><strong className="text-foreground">Phone:</strong> {deletingWorker.phone}</div>
+              <div><strong className="text-foreground">Department:</strong> {deletingWorker.department}</div>
+            </div>
+
+            <div className="flex gap-2.5 pt-2">
+              <Button type="button" variant="outline" onClick={() => setDeletingWorker(null)} className="flex-1 rounded-xl text-xs h-10">
+                Cancel
+              </Button>
+              <Button type="button" variant="destructive" onClick={handleDeleteWorker} className="flex-1 rounded-xl text-xs h-10 font-bold">
+                Delete Worker
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </>

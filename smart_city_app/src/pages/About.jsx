@@ -12,7 +12,7 @@ export function About() {
             Built by students, <br /><span className="italic text-primary">for a better city.</span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
-            Nagarik started as an academic project inside AIKTC's Department of Computer Engineering.
+            Nagarik started as an innovative civic-tech initiative.
             It's grown into a working prototype we hope every Indian smart city can adopt.
           </p>
         </div>
@@ -62,27 +62,6 @@ export function About() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-4 py-24 sm:px-6">
-        <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">The team</div>
-        <h2 className="mt-2 font-display text-4xl">Made at AIKTC.</h2>
-        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            { n: "Aariz Khan", r: "Product & AI" },
-            { n: "Sana Sheikh", r: "Frontend" },
-            { n: "Rehan Ansari", r: "Backend" },
-            { n: "Prof. Tabrez Khan", r: "Faculty Mentor" },
-          ].map((m, i) => (
-            <div key={m.n} className="rounded-2xl border border-border bg-card p-6">
-              <div className="grid h-16 w-16 place-items-center rounded-full bg-hero font-display text-2xl text-primary-foreground">
-                {m.n[0]}
-              </div>
-              <div className="mt-4 font-display text-lg">{m.n}</div>
-              <div className="text-sm text-muted-foreground">{m.r}</div>
-            </div>
-          ))}
         </div>
       </section>
     </div>

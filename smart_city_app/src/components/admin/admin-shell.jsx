@@ -20,6 +20,7 @@ const NAV = [
   { to: "/admin/complaints", label: "Complaints", icon: AlertTriangle,   perm: "admin.complaints" },
   { to: "/admin/heatmap",    label: "Heatmap",    icon: MapPin,          perm: "admin.heatmap" },
   { to: "/admin/workers",    label: "Workers",    icon: Users,           perm: "admin.workers" },
+  { to: "/admin/users",      label: "Staff & Admins", icon: ShieldCheck, perm: "admin.users" },
   { to: "/admin/analytics",  label: "Analytics",  icon: TrendingUp,      perm: "admin.analytics" },
   { to: "/admin/settings",   label: "Settings",   icon: Settings2,       perm: "admin.settings" },
 ];

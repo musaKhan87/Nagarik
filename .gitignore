@@ -32,3 +32,7 @@ dist-ssr
 /smart_city_app/node_modules
 node_modules
 /smart_city_app/dist
+
+/scripts
+/data
+presentation_document.md
