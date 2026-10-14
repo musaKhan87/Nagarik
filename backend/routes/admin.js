@@ -149,6 +149,15 @@ router.put('/complaints/:id/status', verifyToken, checkRole('dept_admin', 'super
       return res.json({ message: 'Status is unchanged.', complaint });
     }
 
+    if (status === 'Resolved' && prevStatus !== 'Resolved') {
+      let worker = null;
+      if (complaint.assignedWorker) {
+        worker = await User.findById(complaint.assignedWorker).select('name department workerPerformance');
+      }
+      const { recordWorkerResolution } = require('../services/appreciationService');
+      complaint.resolutionDetails = await recordWorkerResolution(complaint, worker);
+    }
+
     complaint.status = status;
     await complaint.save();
 
@@ -252,7 +261,7 @@ router.get('/users', verifyToken, checkRole('super_admin'), async (req, res, nex
       .sort({ createdAt: -1 });
 
     const complaints = await Complaint.find({})
-      .select('assignedWorker assignedDept status issueType location description updatedAt createdAt')
+      .select('assignedWorker assignedDept status issueType location description updatedAt createdAt resolutionDetails')
       .sort({ updatedAt: -1 });
 
     const allWorkers = await User.find({ role: 'worker' }).select('department');
@@ -264,11 +273,16 @@ router.get('/users', verifyToken, checkRole('super_admin'), async (req, res, nex
         const workerComplaints = complaints.filter(c => (c.assignedWorker?.toString() === workerIdStr));
         const resolved = workerComplaints.filter(c => c.status === 'Resolved' || c.status === 'Closed');
         const inProgress = workerComplaints.filter(c => c.status === 'In Progress' || c.status === 'Under Review' || c.status === 'Pending');
+        const earlyCount = resolved.filter(c => c.resolutionDetails?.isEarly).length;
+        const totalKudos = resolved.reduce((acc, c) => acc + (c.resolutionDetails?.citizenKudosCount || 0), 0);
+
         userObj.workSummary = {
           type: 'worker',
           totalAssigned: workerComplaints.length,
           resolvedCount: resolved.length,
           inProgressCount: inProgress.length,
+          earlyResolutions: earlyCount,
+          totalKudos,
           resolutionRate: workerComplaints.length > 0 ? Math.round((resolved.length / workerComplaints.length) * 100) : 0,
           recentTasks: workerComplaints.slice(0, 8).map(t => ({
             id: t._id,
@@ -276,7 +290,11 @@ router.get('/users', verifyToken, checkRole('super_admin'), async (req, res, nex
             status: t.status,
             address: t.location?.address || 'Navi Mumbai',
             description: t.description,
-            date: t.updatedAt || t.createdAt
+            date: t.updatedAt || t.createdAt,
+            speedBadge: t.resolutionDetails?.speedBadge,
+            aheadOfTimeHours: t.resolutionDetails?.aheadOfTimeHours,
+            kudosCount: t.resolutionDetails?.citizenKudosCount || 0,
+            appreciationNote: t.resolutionDetails?.appreciationNote
           }))
         };
       } else if (u.role === 'dept_admin') {
