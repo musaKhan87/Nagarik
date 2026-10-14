@@ -3,7 +3,7 @@ import {
   Users, UserPlus, Search, Edit2, Trash2, Key, ShieldCheck, 
   Building2, Phone, Mail, CheckCircle2, AlertCircle, X, ShieldAlert,
   Activity, CheckCircle, Clock, Award, Briefcase, Eye, ExternalLink,
-  MapPin, Calendar, FileText
+  MapPin, Calendar, FileText, Zap, Heart
 } from 'lucide-react';
 import api from '../api';
 import { Button } from '../components/ui/button';
@@ -869,7 +869,7 @@ export function RoleManagement() {
             </div>
 
             {/* Work Performance Summary KPI Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+            <div className={`grid gap-3.5 sm:gap-4 ${viewingWorkUser.role === 'worker' ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-6' : 'grid-cols-2 lg:grid-cols-4'}`}>
               {viewingWorkUser.role === 'worker' ? (
                 <>
                   <div className="p-4 sm:p-5 rounded-2xl border border-border bg-surface/70 flex flex-col justify-between min-h-[110px]">
@@ -888,9 +888,27 @@ export function RoleManagement() {
                     <div className="mt-2 text-[11px] text-amber-600/80 truncate">Active complaints</div>
                   </div>
                   <div className="p-4 sm:p-5 rounded-2xl border border-primary/20 bg-primary/5 flex flex-col justify-between min-h-[110px]">
-                    <div className="text-[11px] font-bold uppercase tracking-wider text-primary">SLA Completion</div>
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-primary">SLA Score</div>
                     <div className="mt-2 text-2xl sm:text-3xl font-extrabold text-primary font-sans leading-none">{viewingWorkUser.workSummary?.resolutionRate || 0}%</div>
-                    <div className="mt-2 text-[11px] text-primary/80 truncate">On-time SLA score</div>
+                    <div className="mt-2 text-[11px] text-primary/80 truncate">On-time SLA</div>
+                  </div>
+                  <div className="p-4 sm:p-5 rounded-2xl border border-amber-500/30 bg-amber-500/10 flex flex-col justify-between min-h-[110px]">
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                      <Zap className="h-3 w-3 fill-amber-500 text-amber-500" /> Early Resolves
+                    </div>
+                    <div className="mt-2 text-2xl sm:text-3xl font-extrabold text-amber-600 dark:text-amber-400 font-sans leading-none">
+                      {viewingWorkUser.workSummary?.earlyResolutions || 0}
+                    </div>
+                    <div className="mt-2 text-[11px] text-amber-600/80 truncate">Ahead of SLA deadline</div>
+                  </div>
+                  <div className="p-4 sm:p-5 rounded-2xl border border-rose-500/30 bg-rose-500/10 flex flex-col justify-between min-h-[110px]">
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 flex items-center gap-1">
+                      <Heart className="h-3 w-3 fill-rose-500 text-rose-500" /> Citizen Kudos
+                    </div>
+                    <div className="mt-2 text-2xl sm:text-3xl font-extrabold text-rose-600 dark:text-rose-400 font-sans leading-none">
+                      {viewingWorkUser.workSummary?.totalKudos || 0}
+                    </div>
+                    <div className="mt-2 text-[11px] text-rose-600/80 truncate">Citizen appreciations</div>
                   </div>
                 </>
               ) : viewingWorkUser.role === 'dept_admin' ? (
@@ -1031,16 +1049,42 @@ export function RoleManagement() {
                     <div key={task.id} className="rounded-2xl border border-border bg-surface/50 p-4 space-y-2 text-xs hover:border-primary/40 transition">
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-bold text-foreground text-sm">{task.issueType}</span>
-                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
-                          task.status === 'Resolved' 
-                            ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                            : task.status === 'In Progress'
-                            ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
-                            : 'bg-muted text-muted-foreground'
-                        }`}>
-                          {task.status}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
+                            task.status === 'Resolved' 
+                              ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                              : task.status === 'In Progress'
+                              ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                              : 'bg-muted text-muted-foreground'
+                          }`}>
+                            {task.status}
+                          </span>
+                        </div>
                       </div>
+
+                      {/* Speed Badge & Appreciation Chits */}
+                      {task.status === 'Resolved' && (task.speedBadge || task.aheadOfTimeHours > 0 || task.citizenKudosCount > 0) && (
+                        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                          {task.speedBadge && (
+                            <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1">
+                              <Zap className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                              <span>{task.speedBadge}</span>
+                            </span>
+                          )}
+                          {task.aheadOfTimeHours > 0 && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                              +{task.aheadOfTimeHours}h Ahead
+                            </span>
+                          )}
+                          {task.citizenKudosCount > 0 && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 flex items-center gap-1">
+                              <Heart className="h-2.5 w-2.5 fill-rose-500 text-rose-500" />
+                              <span>{task.citizenKudosCount} Kudos</span>
+                            </span>
+                          )}
+                        </div>
+                      )}
+
                       {task.description && (
                         <p className="text-muted-foreground line-clamp-2 leading-relaxed">{task.description}</p>
                       )}

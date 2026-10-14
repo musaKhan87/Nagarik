@@ -34,6 +34,19 @@ const ComplaintSchema = new mongoose.Schema({
   }],
   upvoteCount: { type: Number, default: 0 },
   resolvedPhoto: { type: String, default: null },
+  resolutionDetails: {
+    resolvedAt: { type: Date },
+    resolvedByWorker: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    workerName: { type: String },
+    workerDepartment: { type: String },
+    resolutionTimeHours: { type: Number, default: 0 },
+    aheadOfTimeHours: { type: Number, default: 0 },
+    speedBadge: { type: String, default: null },
+    appreciationNote: { type: String, default: null },
+    isEarly: { type: Boolean, default: false },
+    citizenKudosCount: { type: Number, default: 0 },
+    citizenKudosUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+  },
   feedback: {
     rating: { type: Number, min: 1, max: 5 },
     comment: { type: String },

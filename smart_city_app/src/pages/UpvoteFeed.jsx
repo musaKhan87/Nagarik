@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { ThumbsUp, Search, MapPin, Sparkles, Filter, Flame, ShieldCheck, CheckCircle2, Zap, Layers, AlertCircle, Eye, X, Building2, Calendar, UserCheck } from 'lucide-react';
+import { ThumbsUp, Search, MapPin, Sparkles, Filter, Flame, ShieldCheck, CheckCircle2, Zap, Layers, AlertCircle, Eye, X, Building2, Calendar, UserCheck, Award, Heart, Clock } from 'lucide-react';
 import { useComplaints } from '../context/ComplaintContext';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import api from '../api';
 
 export function UpvoteFeed() {
   const { complaints, upvoteComplaint, loading } = useComplaints();
@@ -14,6 +15,8 @@ export function UpvoteFeed() {
   const [sortBy, setSortBy] = useState('most_upvoted');
   const [upvotingIds, setUpvotingIds] = useState({});
   const [selectedComplaintModal, setSelectedComplaintModal] = useState(null);
+  const [sendingKudos, setSendingKudos] = useState(false);
+  const [kudosFeedback, setKudosFeedback] = useState('');
 
   const categories = [
     { name: 'All', icon: '✨' },
@@ -40,6 +43,28 @@ export function UpvoteFeed() {
       console.error('Upvote error:', err);
     } finally {
       setUpvotingIds(prev => ({ ...prev, [id]: false }));
+    }
+  };
+
+  const handleSendModalKudos = async (complaintId) => {
+    if (!complaintId) return;
+    setSendingKudos(true);
+    try {
+      const res = await api.post(`/complaints/${complaintId}/kudos`);
+      if (res.data?.success) {
+        setKudosFeedback('Kudos Sent! 💖');
+        setSelectedComplaintModal(prev => prev ? {
+          ...prev,
+          resolutionDetails: {
+            ...prev.resolutionDetails,
+            citizenKudosCount: (prev.resolutionDetails?.citizenKudosCount || 0) + 1
+          }
+        } : null);
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to send appreciation');
+    } finally {
+      setSendingKudos(false);
     }
   };
 
@@ -292,33 +317,56 @@ export function UpvoteFeed() {
                     )}
                   </div>
 
-                  {/* PROMINENT UPVOTE BUTTON WITH DISTINCT ACTIVE/INACTIVE COLORING */}
+                  {/* PROMINENT UPVOTE OR WORKER RECOGNITION BADGE */}
                   <div className="mt-6 pt-4 border-t border-border/60">
-                    <button
-                      type="button"
-                      onClick={(e) => handleUpvote(e, c._id)}
-                      disabled={isUpvoting || isResolved}
-                      className={`w-full flex items-center justify-center gap-2 rounded-2xl py-3 px-4 text-xs font-bold transition-all duration-300 ${
-                        isResolved
-                          ? "bg-secondary text-muted-foreground border border-border cursor-not-allowed opacity-60"
-                          : hasUserUpvoted
-                          ? "bg-emerald-600 text-white font-extrabold shadow-glow border border-emerald-400/40 ring-2 ring-emerald-500/20"
-                          : "bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 shadow-elev"
-                      }`}
-                    >
-                      {hasUserUpvoted ? (
-                        <CheckCircle2 className="h-4 w-4 text-white shrink-0" />
-                      ) : (
-                        <ThumbsUp className={`h-4 w-4 shrink-0 ${isUpvoting ? "animate-bounce" : ""}`} />
-                      )}
-                      <span>
-                        {isResolved
-                          ? `Resolved (${upvoteCount})`
-                          : hasUserUpvoted
-                          ? `✓ Upvoted (${upvoteCount}) · Priority Escalated`
-                          : `Upvote Issue ⬆ (${upvoteCount})`}
-                      </span>
-                    </button>
+                    {isResolved ? (
+                      <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-3.5 space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-extrabold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                            <CheckCircle2 className="h-4 w-4" /> Issue Resolved
+                          </span>
+                          {c.resolutionDetails?.speedBadge && (
+                            <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1">
+                              <Zap className="h-3 w-3 fill-amber-500" />
+                              {c.resolutionDetails.speedBadge}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-emerald-500/15">
+                          <span className="truncate">By: <strong className="text-foreground">{c.resolutionDetails?.workerName || c.assignedWorker?.name || 'Field Officer'}</strong></span>
+                          {c.resolutionDetails?.aheadOfTimeHours > 0 ? (
+                            <span className="text-emerald-600 dark:text-emerald-400 font-bold">+{c.resolutionDetails.aheadOfTimeHours}h Ahead 🚀</span>
+                          ) : (
+                            <span className="text-rose-500 font-bold flex items-center gap-1">
+                              <Heart className="h-3 w-3 fill-rose-500" /> {c.resolutionDetails?.citizenKudosCount || 0} Kudos
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => handleUpvote(e, c._id)}
+                        disabled={isUpvoting}
+                        className={`w-full flex items-center justify-center gap-2 rounded-2xl py-3 px-4 text-xs font-bold transition-all duration-300 ${
+                          hasUserUpvoted
+                            ? "bg-emerald-600 text-white font-extrabold shadow-glow border border-emerald-400/40 ring-2 ring-emerald-500/20"
+                            : "bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 shadow-elev"
+                        }`}
+                      >
+                        {hasUserUpvoted ? (
+                          <CheckCircle2 className="h-4 w-4 text-white shrink-0" />
+                        ) : (
+                          <ThumbsUp className={`h-4 w-4 shrink-0 ${isUpvoting ? "animate-bounce" : ""}`} />
+                        )}
+                        <span>
+                          {hasUserUpvoted
+                            ? `✓ Upvoted (${upvoteCount}) · Priority Escalated`
+                            : `Upvote Issue ⬆ (${upvoteCount})`}
+                        </span>
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -329,11 +377,14 @@ export function UpvoteFeed() {
         {/* Detailed Modal Drawer */}
         {selectedComplaintModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="relative w-full max-w-xl rounded-3xl border border-border bg-card p-6 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+            <div className="relative w-full max-w-xl rounded-3xl border border-border bg-card p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
               
               {/* Close Button */}
               <button
-                onClick={() => setSelectedComplaintModal(null)}
+                onClick={() => {
+                  setSelectedComplaintModal(null);
+                  setKudosFeedback('');
+                }}
                 className="absolute top-4 right-4 grid h-8 w-8 place-items-center rounded-full bg-secondary text-muted-foreground hover:text-foreground"
               >
                 <X className="h-4 w-4" />
@@ -348,20 +399,116 @@ export function UpvoteFeed() {
                   <span className="text-xs text-muted-foreground font-mono">
                     #{selectedComplaintModal._id}
                   </span>
+                  {selectedComplaintModal.status === 'Resolved' && (
+                    <span className="rounded-full bg-emerald-500/15 text-emerald-600 px-2.5 py-0.5 text-xs font-bold border border-emerald-500/30">
+                      Resolved
+                    </span>
+                  )}
                 </div>
                 <h2 className="font-display text-2xl font-bold text-foreground">
-                  Grievance Details & Upvotes
+                  Grievance Details & Resolution
                 </h2>
               </div>
 
-              {/* Modal Photo */}
-              <div className="relative h-60 w-full overflow-hidden rounded-2xl bg-secondary">
-                <img
-                  src={selectedComplaintModal.photo}
-                  alt={selectedComplaintModal.issueType}
-                  className="h-full w-full object-cover"
-                />
+              {/* Modal Photos — Initial and Resolution Proof Photo */}
+              <div className={`grid gap-3 ${selectedComplaintModal.resolvedPhoto ? "grid-cols-2" : "grid-cols-1"}`}>
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Initial Photo</span>
+                  <div className="relative h-44 w-full overflow-hidden rounded-2xl bg-secondary border border-border">
+                    <img
+                      src={selectedComplaintModal.photo}
+                      alt={selectedComplaintModal.issueType}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                </div>
+
+                {selectedComplaintModal.resolvedPhoto && (
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-emerald-600 uppercase flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3" /> Worker Proof Photo
+                    </span>
+                    <div className="relative h-44 w-full overflow-hidden rounded-2xl bg-secondary border-2 border-emerald-500/40">
+                      <img
+                        src={selectedComplaintModal.resolvedPhoto}
+                        alt="Resolution proof"
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
+
+              {/* WORKER RECOGNITION & SPEED APPRECIATION CARD FOR CITIZEN */}
+              {selectedComplaintModal.status === 'Resolved' && (
+                <div className="rounded-2xl border-2 border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-card to-amber-500/5 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-600">
+                        <Award className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-extrabold text-foreground">Worker Recognition & Appreciation</h4>
+                        <p className="text-[10px] text-muted-foreground">Rapid civic field response</p>
+                      </div>
+                    </div>
+                    {selectedComplaintModal.resolutionDetails?.speedBadge && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-gradient-to-r from-amber-500/20 to-emerald-500/20 text-amber-600 border border-amber-500/30 shadow-sm">
+                        <Zap className="h-3 w-3 fill-amber-500 text-amber-500" />
+                        {selectedComplaintModal.resolutionDetails.speedBadge}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="bg-card/90 p-2.5 rounded-xl border border-border/80">
+                      <div className="text-[10px] uppercase font-bold text-muted-foreground">Resolved By</div>
+                      <div className="font-extrabold text-foreground text-xs">
+                        {selectedComplaintModal.resolutionDetails?.workerName || selectedComplaintModal.assignedWorker?.name || 'Field Officer'}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground truncate">
+                        {selectedComplaintModal.resolutionDetails?.workerDepartment || selectedComplaintModal.assignedDept || 'Civic Field Team'}
+                      </div>
+                    </div>
+
+                    <div className="bg-card/90 p-2.5 rounded-xl border border-border/80 flex flex-col justify-center">
+                      <div className="text-[10px] text-muted-foreground">Completion Speed</div>
+                      {selectedComplaintModal.resolutionDetails?.aheadOfTimeHours > 0 ? (
+                        <span className="text-xs font-bold text-emerald-600">
+                          +{selectedComplaintModal.resolutionDetails.aheadOfTimeHours}h Ahead of Deadline 🚀
+                        </span>
+                      ) : (
+                        <span className="text-xs font-bold text-foreground">
+                          {selectedComplaintModal.resolutionDetails?.resolutionTimeHours 
+                            ? `${selectedComplaintModal.resolutionDetails.resolutionTimeHours}h total time`
+                            : 'Completed on-time'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Send Kudos Button */}
+                  <div className="flex items-center justify-between pt-1 border-t border-border/50">
+                    <div className="text-[11px] text-muted-foreground flex items-center gap-1">
+                      <Heart className="h-3.5 w-3.5 text-rose-500 fill-rose-500" />
+                      <span className="font-bold text-foreground">
+                        {selectedComplaintModal.resolutionDetails?.citizenKudosCount || 0}
+                      </span>
+                      <span>Citizens Applauded</span>
+                    </div>
+
+                    <Button
+                      size="sm"
+                      onClick={() => handleSendModalKudos(selectedComplaintModal._id)}
+                      disabled={sendingKudos}
+                      className="rounded-xl text-xs gap-1.5 bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-white font-bold h-8 shadow-sm"
+                    >
+                      <ThumbsUp className="h-3 w-3" />
+                      <span>{kudosFeedback || "Send Worker Kudos 👏"}</span>
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               {/* Info Grid */}
               <div className="grid grid-cols-2 gap-3 text-xs">
@@ -402,18 +549,19 @@ export function UpvoteFeed() {
                 </div>
               )}
 
-              {/* Action Upvote inside Modal */}
-              <div className="pt-2">
-                <button
-                  type="button"
-                  onClick={(e) => handleUpvote(e, selectedComplaintModal._id)}
-                  disabled={selectedComplaintModal.status === 'Resolved'}
-                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 px-4 text-sm font-bold text-primary-foreground shadow-glow hover:bg-primary/90 transition"
-                >
-                  <ThumbsUp className="h-4 w-4" />
-                  <span>Upvote This Issue (+1 Priority)</span>
-                </button>
-              </div>
+              {/* Action Upvote inside Modal (if not resolved) */}
+              {selectedComplaintModal.status !== 'Resolved' && (
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={(e) => handleUpvote(e, selectedComplaintModal._id)}
+                    className="w-full flex items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 px-4 text-sm font-bold text-primary-foreground shadow-glow hover:bg-primary/90 transition"
+                  >
+                    <ThumbsUp className="h-4 w-4" />
+                    <span>Upvote This Issue (+1 Priority)</span>
+                  </button>
+                </div>
+              )}
 
             </div>
           </div>

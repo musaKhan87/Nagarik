@@ -22,7 +22,13 @@ const UserSchema = new mongoose.Schema({
   department: { type: String, default: null },
   fcmToken: { type: String, default: null },
   pushSubscriptions: [PushSubscriptionSchema],
-  totalComplaints: { type: Number, default: 0 }
+  totalComplaints: { type: Number, default: 0 },
+  workerPerformance: {
+    totalResolved: { type: Number, default: 0 },
+    earlyResolutions: { type: Number, default: 0 },
+    totalKudos: { type: Number, default: 0 },
+    badges: [{ type: String }]
+  }
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', UserSchema);

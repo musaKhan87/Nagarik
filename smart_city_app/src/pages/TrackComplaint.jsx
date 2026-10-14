@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MapPin, Search, CheckCircle2, Star, Clock, ShieldCheck, Sparkles, Building2, User, MessageSquare } from 'lucide-react';
+import { MapPin, Search, CheckCircle2, Star, Clock, ShieldCheck, Sparkles, Building2, User, MessageSquare, Award, Heart, ThumbsUp, Zap } from 'lucide-react';
 import api from '../api';
 import { useComplaints } from '../context/ComplaintContext';
 import { StarRating } from '../components/StarRating';
@@ -30,6 +30,8 @@ export function TrackComplaint() {
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
   const [loading, setLoading] = useState(false);
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
+  const [sendingKudos, setSendingKudos] = useState(false);
+  const [kudosSuccess, setKudosSuccess] = useState(false);
 
   const fetchDetail = async (searchId) => {
     if (!searchId) return;
@@ -68,6 +70,22 @@ export function TrackComplaint() {
       console.error(err);
     } finally {
       setSubmittingFeedback(false);
+    }
+  };
+
+  const handleSendKudos = async () => {
+    if (!activeComplaint) return;
+    setSendingKudos(true);
+    try {
+      const resp = await api.post(`/complaints/${activeComplaint._id || activeComplaint.id}/kudos`);
+      if (resp.data?.success) {
+        setKudosSuccess(true);
+        fetchDetail(activeComplaint._id || activeComplaint.id);
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to send appreciation');
+    } finally {
+      setSendingKudos(false);
     }
   };
 
@@ -198,6 +216,105 @@ export function TrackComplaint() {
               <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground bg-secondary/40 p-3.5 rounded-2xl border border-border/60">
                 <MapPin className="h-4 w-4 text-primary shrink-0" />
                 <span>{activeComplaint.location.address}</span>
+              </div>
+            )}
+
+            {/* WORKER RECOGNITION & SPEED APPRECIATION CARD */}
+            {activeComplaint.status === 'Resolved' && (
+              <div className="rounded-3xl border-2 border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-card to-amber-500/5 p-5 sm:p-6 shadow-md space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2.5 rounded-2xl bg-emerald-500/20 text-emerald-600 border border-emerald-500/30 shadow-sm">
+                      <Award className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-extrabold text-foreground flex items-center gap-2">
+                        <span>Worker Recognition & Appreciation</span>
+                        {activeComplaint.resolutionDetails?.isEarly && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 border border-emerald-500/30">
+                            Early Resolution ⚡
+                          </span>
+                        )}
+                      </h4>
+                      <p className="text-[11px] text-muted-foreground">Recognizing dedication and rapid response in civic field service</p>
+                    </div>
+                  </div>
+                  {activeComplaint.resolutionDetails?.speedBadge && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-gradient-to-r from-amber-500/20 to-emerald-500/20 text-amber-600 border border-amber-500/30 shadow-sm">
+                      <Zap className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
+                      {activeComplaint.resolutionDetails.speedBadge}
+                    </span>
+                  )}
+                </div>
+
+                {/* Worker Profile & Speed Stats */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="flex items-center gap-3 bg-card/90 p-3.5 rounded-2xl border border-border/80 shadow-sm">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black text-sm uppercase shrink-0">
+                      {(activeComplaint.resolutionDetails?.workerName || activeComplaint.assignedWorker?.name || 'W').charAt(0)}
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase font-bold text-muted-foreground">Resolved By Field Worker</div>
+                      <div className="font-extrabold text-foreground text-sm">
+                        {activeComplaint.resolutionDetails?.workerName || activeComplaint.assignedWorker?.name || 'Field Officer'}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground flex items-center gap-1">
+                        <Building2 className="h-3 w-3 text-primary" />
+                        {activeComplaint.resolutionDetails?.workerDepartment || activeComplaint.assignedDept || 'Municipal Field Team'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-card/90 p-3.5 rounded-2xl border border-border/80 shadow-sm flex flex-col justify-center space-y-1.5">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> Time Taken:</span>
+                      <span className="font-extrabold text-foreground">
+                        {activeComplaint.resolutionDetails?.resolutionTimeHours !== undefined 
+                          ? `${activeComplaint.resolutionDetails.resolutionTimeHours} hrs`
+                          : 'Promptly'}
+                      </span>
+                    </div>
+                    {activeComplaint.resolutionDetails?.aheadOfTimeHours > 0 ? (
+                      <div className="flex items-center justify-between text-[11px] text-emerald-600 font-bold bg-emerald-500/10 px-2.5 py-1 rounded-xl border border-emerald-500/20">
+                        <span>Ahead of SLA Deadline:</span>
+                        <span>+{activeComplaint.resolutionDetails.aheadOfTimeHours}h Saved 🚀</span>
+                      </div>
+                    ) : (
+                      <div className="text-[10px] text-muted-foreground italic">
+                        Completed within standard SLA response time
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Appreciation Note */}
+                {activeComplaint.resolutionDetails?.appreciationNote && (
+                  <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-300 font-medium flex items-center gap-2.5">
+                    <Sparkles className="h-4 w-4 shrink-0 text-amber-500" />
+                    <span>"{activeComplaint.resolutionDetails.appreciationNote}"</span>
+                  </div>
+                )}
+
+                {/* Citizen Kudos Button */}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                  <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <Heart className="h-4 w-4 text-rose-500 fill-rose-500" />
+                    <span className="font-extrabold text-foreground">
+                      {activeComplaint.resolutionDetails?.citizenKudosCount || 0}
+                    </span>
+                    <span>citizens applauded this worker</span>
+                  </div>
+
+                  <Button
+                    onClick={handleSendKudos}
+                    disabled={sendingKudos || kudosSuccess}
+                    size="sm"
+                    className="rounded-2xl gap-1.5 bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-white font-bold shadow-md hover:shadow-lg transition-all"
+                  >
+                    <ThumbsUp className="h-3.5 w-3.5" />
+                    <span>{kudosSuccess ? "Appreciation Sent! 💖" : "Send Worker Kudos 👏"}</span>
+                  </Button>
+                </div>
               </div>
             )}
 

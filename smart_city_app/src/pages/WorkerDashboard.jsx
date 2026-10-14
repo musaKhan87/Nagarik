@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, MapPin, Camera, CheckCircle2, Navigation, Clock, LogOut, Upload, X, Image as ImageIcon, AlertCircle } from "lucide-react";
+import { Sparkles, MapPin, Camera, CheckCircle2, Navigation, Clock, LogOut, Upload, X, Image as ImageIcon, AlertCircle, Award, Zap, Heart, Trophy, ThumbsUp } from "lucide-react";
 import { useComplaints } from '../context/ComplaintContext';
 import { Button } from "../components/ui/button";
 import { useAuth } from '../context/AuthContext';
@@ -12,6 +12,9 @@ export function WorkerDashboard() {
   const [proofPhotoUrl, setProofPhotoUrl] = useState('');
   const [uploading, setUploading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  const earlyResolutionsCount = complaints.filter(c => c.status === 'Resolved' && (c.resolutionDetails?.isEarly || (c.resolutionDetails?.aheadOfTimeHours > 0))).length || currentUser?.workerPerformance?.earlyResolutions || 0;
+  const totalKudosCount = complaints.reduce((sum, c) => sum + (c.resolutionDetails?.citizenKudosCount || 0), 0) || currentUser?.workerPerformance?.totalKudos || 0;
 
   const sampleProofPhotos = [
     'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&q=80&w=600',
@@ -100,18 +103,37 @@ export function WorkerDashboard() {
           </p>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid gap-4 sm:grid-cols-3">
-          {[
-            { l: "Open Assigned Tasks", v: complaints.filter(c => c.status !== 'Resolved').length, c: "text-amber-500" },
-            { l: "Resolved Issues", v: complaints.filter(c => c.status === 'Resolved').length, c: "text-emerald-500" },
-            { l: "Avg. Resolution SLA", v: "2.4 Hours", c: "text-primary" },
-          ].map((s) => (
-            <div key={s.l} className="rounded-2xl border border-border bg-card p-5 shadow-sm space-y-1">
-              <div className={`font-display text-3xl font-extrabold ${s.c}`}>{s.v}</div>
-              <div className="text-xs uppercase font-bold tracking-wider text-muted-foreground">{s.l}</div>
+        {/* Worker Performance & Appreciation Stats Grid */}
+        <div className="grid gap-4 grid-cols-2 sm:grid-cols-4">
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm space-y-1">
+            <div className="font-display text-3xl font-extrabold text-amber-500">
+              {complaints.filter(c => c.status !== 'Resolved').length}
             </div>
-          ))}
+            <div className="text-xs uppercase font-bold tracking-wider text-muted-foreground">Open Assigned Tasks</div>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm space-y-1">
+            <div className="font-display text-3xl font-extrabold text-emerald-500">
+              {complaints.filter(c => c.status === 'Resolved').length}
+            </div>
+            <div className="text-xs uppercase font-bold tracking-wider text-muted-foreground">Resolved Issues</div>
+          </div>
+
+          <div className="rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-card p-5 shadow-sm space-y-1">
+            <div className="font-display text-3xl font-extrabold text-emerald-600 flex items-center gap-1.5">
+              <span>{earlyResolutionsCount}</span>
+              <Zap className="h-5 w-5 fill-amber-500 text-amber-500" />
+            </div>
+            <div className="text-xs uppercase font-bold tracking-wider text-muted-foreground">Early Resolutions ⚡</div>
+          </div>
+
+          <div className="rounded-2xl border border-rose-500/30 bg-gradient-to-br from-rose-500/10 to-card p-5 shadow-sm space-y-1">
+            <div className="font-display text-3xl font-extrabold text-rose-500 flex items-center gap-1.5">
+              <span>{totalKudosCount}</span>
+              <Heart className="h-5 w-5 fill-rose-500 text-rose-500" />
+            </div>
+            <div className="text-xs uppercase font-bold tracking-wider text-muted-foreground">Citizen Kudos Received</div>
+          </div>
         </div>
 
         {/* Task Cards */}
@@ -179,9 +201,28 @@ export function WorkerDashboard() {
                     </a>
 
                     {t.status === 'Resolved' ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-3.5 py-1.5 text-xs font-bold text-emerald-600">
-                        <CheckCircle2 className="h-4 w-4" /> Issue Resolved
-                      </span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-3.5 py-1.5 text-xs font-bold text-emerald-600">
+                          <CheckCircle2 className="h-4 w-4" /> Issue Resolved
+                        </span>
+                        {t.resolutionDetails?.speedBadge && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-500/15 to-emerald-500/15 border border-amber-500/30 px-3 py-1 text-xs font-black text-amber-600">
+                            <Zap className="h-3 w-3 fill-amber-500 text-amber-500" />
+                            {t.resolutionDetails.speedBadge}
+                          </span>
+                        )}
+                        {t.resolutionDetails?.aheadOfTimeHours > 0 && (
+                          <span className="text-[11px] font-bold text-emerald-600 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+                            +{t.resolutionDetails.aheadOfTimeHours}h Ahead of Deadline 🚀
+                          </span>
+                        )}
+                        {(t.resolutionDetails?.citizenKudosCount > 0) && (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-600 bg-rose-500/10 px-2.5 py-1 rounded-full border border-rose-500/20">
+                            <Heart className="h-3 w-3 fill-rose-500" />
+                            {t.resolutionDetails.citizenKudosCount} Kudos
+                          </span>
+                        )}
+                      </div>
                     ) : (
                       <Button onClick={() => openResolutionModal(t)} className="gap-2 rounded-xl text-xs font-bold">
                         <Camera className="h-4 w-4" /> Upload Resolution Proof Photo

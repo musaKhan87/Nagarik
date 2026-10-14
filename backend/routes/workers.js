@@ -38,8 +38,14 @@ router.put('/:id/resolve', verifyToken, checkRole('worker'), async (req, res, ne
     const prevStatus = complaint.status;
     const newStatus = 'Resolved';
 
+    // Calculate resolution speed, early completion accolade, and worker appreciation
+    const worker = await User.findById(req.user.userId).select('name department workerPerformance');
+    const { recordWorkerResolution } = require('../services/appreciationService');
+    const resolutionDetails = await recordWorkerResolution(complaint, worker);
+
     complaint.status = newStatus;
     complaint.resolvedPhoto = resolvedPhoto;
+    complaint.resolutionDetails = resolutionDetails;
     await complaint.save();
 
     // Trigger Web Push notification if status changed

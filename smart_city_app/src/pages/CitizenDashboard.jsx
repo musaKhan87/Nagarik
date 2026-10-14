@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, MapPin, ThumbsUp, Filter, AlertTriangle } from "lucide-react";
+import { Search, MapPin, ThumbsUp, Filter, AlertTriangle, Award, Zap, Heart, CheckCircle2 } from "lucide-react";
 import { useComplaints } from '../context/ComplaintContext';
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
@@ -8,7 +8,7 @@ import { Button } from "../components/ui/button";
 const STATUS_COLORS = {
   Pending: "bg-warning/20 text-warning-foreground border-warning/30",
   "In Progress": "bg-primary/15 text-primary border-primary/30",
-  Resolved: "bg-success/20 text-success border-success/30",
+  Resolved: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
 };
 
 const SEV_COLORS = {
@@ -42,7 +42,7 @@ export function CitizenDashboard() {
         <div>
           <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Your dashboard</div>
           <h1 className="mt-1.5 font-display text-3xl sm:text-4xl md:text-5xl text-foreground">Track your complaints.</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Live status, upvotes, resolution proof.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Live status, worker appreciation & resolution proof.</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <div className="relative flex-1 sm:w-64">
@@ -58,7 +58,7 @@ export function CitizenDashboard() {
           { k: complaints.length, v: "Total", c: "" },
           { k: complaints.filter(c => c.status === 'Pending').length, v: "Pending", c: "text-warning" },
           { k: complaints.filter(c => c.status === 'In Progress').length, v: "In progress", c: "text-primary" },
-          { k: complaints.filter(c => c.status === 'Resolved').length, v: "Resolved", c: "text-success" },
+          { k: complaints.filter(c => c.status === 'Resolved').length, v: "Resolved", c: "text-emerald-500" },
         ].map((s) => (
           <div key={s.v} className="rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-sm">
             <div className={`font-display text-2xl sm:text-3xl font-bold ${s.c}`}>{s.k}</div>
@@ -74,14 +74,14 @@ export function CitizenDashboard() {
           <p className="text-muted-foreground text-sm mb-6">Every report you submit will appear here.</p>
         </div>
       ) : (
-        <div className="mt-8 space-y-3">
+        <div className="mt-8 space-y-3.5">
           {list.map((c) => {
             const progressPct = c.status === 'Resolved' ? 100 : c.status === 'In Progress' ? 50 : 15;
             return (
               <div 
                 key={c._id || c.id} 
                 onClick={() => navigate(`/track/${c._id || c.id}`)}
-                className="group rounded-2xl border border-border bg-card p-5 transition hover:border-primary/40 hover:shadow-elev sm:p-6 cursor-pointer"
+                className="group rounded-2xl border border-border bg-card p-5 transition hover:border-primary/40 hover:shadow-elev sm:p-6 cursor-pointer space-y-3"
               >
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 sm:flex sm:items-center">
                   <div className="min-w-0">
@@ -104,7 +104,47 @@ export function CitizenDashboard() {
                     <ThumbsUp className="h-3.5 w-3.5" /> {c.upvoteCount || 0}
                   </button>
                 </div>
-                <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-secondary">
+
+                {/* WORKER APPRECIATION & SPEED RECOGNITION HIGHLIGHT FOR CITIZEN */}
+                {c.status === 'Resolved' && (
+                  <div className="pt-2.5 border-t border-border/60 flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex items-center gap-1.5 font-bold text-foreground">
+                        <Award className="h-4 w-4 text-emerald-500" />
+                        <span className="text-muted-foreground">Resolved by:</span>
+                        <span className="text-primary font-extrabold">
+                          {c.resolutionDetails?.workerName || c.assignedWorker?.name || 'Field Officer'}
+                        </span>
+                      </div>
+
+                      {c.resolutionDetails?.speedBadge && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-gradient-to-r from-amber-500/15 to-emerald-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                          <Zap className="h-3 w-3 fill-amber-500 text-amber-500" />
+                          {c.resolutionDetails.speedBadge}
+                        </span>
+                      )}
+
+                      {c.resolutionDetails?.aheadOfTimeHours > 0 && (
+                        <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                          +{c.resolutionDetails.aheadOfTimeHours}h Ahead of Deadline 🚀
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2.5">
+                      {c.resolutionDetails?.citizenKudosCount > 0 && (
+                        <span className="text-[11px] font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">
+                          <Heart className="h-3 w-3 fill-rose-500 text-rose-500" /> {c.resolutionDetails.citizenKudosCount} Kudos
+                        </span>
+                      )}
+                      <span className="text-[11px] font-bold text-primary group-hover:underline">
+                        View Proof & Kudos →
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-secondary">
                   <div className="h-full rounded-full bg-hero transition-all" style={{ width: `${progressPct}%` }} />
                 </div>
               </div>

@@ -178,7 +178,9 @@ router.post('/', verifyToken, async (req, res, next) => {
 // ───────────────────────────────────────────────
 router.get('/feed', async (req, res, next) => {
   try {
-    const complaints = await Complaint.find().sort({ upvoteCount: -1, createdAt: -1 });
+    const complaints = await Complaint.find()
+      .populate('assignedWorker', 'name department')
+      .sort({ upvoteCount: -1, createdAt: -1 });
     res.json(complaints);
   } catch (err) {
     next(err);
@@ -190,7 +192,9 @@ router.get('/feed', async (req, res, next) => {
 // ───────────────────────────────────────────────
 router.get('/mine', verifyToken, async (req, res, next) => {
   try {
-    const complaints = await Complaint.find({ citizenId: req.user.userId }).sort({ createdAt: -1 });
+    const complaints = await Complaint.find({ citizenId: req.user.userId })
+      .populate('assignedWorker', 'name department')
+      .sort({ createdAt: -1 });
     res.json(complaints);
   } catch (err) {
     next(err);
@@ -202,7 +206,8 @@ router.get('/mine', verifyToken, async (req, res, next) => {
 // ───────────────────────────────────────────────
 router.get('/:id', verifyToken, async (req, res, next) => {
   try {
-    const complaint = await Complaint.findById(req.params.id);
+    const complaint = await Complaint.findById(req.params.id)
+      .populate('assignedWorker', 'name phone department workerPerformance');
     if (!complaint) {
       return res.status(404).json({ message: 'No complaint found with this tracking ID.' });
     }
@@ -272,6 +277,48 @@ router.post('/:id/feedback', verifyToken, async (req, res, next) => {
     complaint.feedback = { rating, comment, submittedAt: new Date() };
     await complaint.save();
     res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ───────────────────────────────────────────────
+// POST /api/complaints/:id/kudos — Send appreciation to the resolving worker
+// ───────────────────────────────────────────────
+router.post('/:id/kudos', verifyToken, async (req, res, next) => {
+  try {
+    const complaint = await Complaint.findById(req.params.id);
+    if (!complaint) return res.status(404).json({ message: 'Complaint not found.' });
+    if (complaint.status !== 'Resolved' && complaint.status !== 'Closed') {
+      return res.status(400).json({ message: 'Appreciation can only be given to resolved complaints.' });
+    }
+
+    if (!complaint.resolutionDetails) {
+      complaint.resolutionDetails = { citizenKudosCount: 0, citizenKudosUsers: [] };
+    }
+
+    const userId = req.user.userId;
+    const alreadyGave = complaint.resolutionDetails.citizenKudosUsers?.some(u => u.toString() === userId);
+    if (alreadyGave) {
+      return res.status(400).json({ message: 'You have already appreciated the worker for this resolution!' });
+    }
+
+    complaint.resolutionDetails.citizenKudosCount = (complaint.resolutionDetails.citizenKudosCount || 0) + 1;
+    complaint.resolutionDetails.citizenKudosUsers.push(userId);
+    await complaint.save();
+
+    // Increment worker's total kudos accolades
+    if (complaint.assignedWorker) {
+      await User.findByIdAndUpdate(complaint.assignedWorker, {
+        $inc: { 'workerPerformance.totalKudos': 1 }
+      });
+    }
+
+    res.json({
+      success: true,
+      kudosCount: complaint.resolutionDetails.citizenKudosCount,
+      message: 'Appreciation sent! Field worker has received your gratitude.'
+    });
   } catch (err) {
     next(err);
   }
