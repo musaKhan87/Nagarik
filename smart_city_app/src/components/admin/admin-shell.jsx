@@ -76,7 +76,10 @@ function SidebarNav({ onNavigate }) {
             </div>
           </div>
           <button
-            onClick={logout}
+            onClick={() => {
+              onNavigate?.();
+              logout();
+            }}
             title="Sign out"
             className="grid h-8 w-8 shrink-0 place-items-center rounded-xl hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition"
           >
@@ -192,7 +195,7 @@ export function AdminShell({ children }) {
         </aside>
 
         <Sheet open={navOpen} onOpenChange={setNavOpen}>
-          <SheetContent side="left" className="w-72 border-r border-border bg-surface p-0">
+          <SheetContent side="left" className="w-72 border-r border-border bg-card p-0 shadow-2xl">
             <SheetHeader className="sr-only">
               <SheetTitle>Admin navigation</SheetTitle>
             </SheetHeader>

@@ -184,9 +184,9 @@ export function MapView({ complaints = [], height = "520px", onPointClick }) {
   }, [filteredComplaints]);
 
   return (
-    <div className="relative w-full overflow-hidden rounded-3xl border border-border bg-card shadow-xl" style={{ height }}>
+    <div className="relative w-full overflow-hidden rounded-3xl border border-border bg-card shadow-xl isolate" style={{ height }}>
       {/* Top Floating Control Bar */}
-      <div className="absolute top-3 left-3 right-3 z-[450] flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+      <div className="absolute top-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
         {/* Layer Mode Toggle */}
         <div className="flex items-center gap-1.5 rounded-2xl border border-border/80 bg-card/90 p-1.5 backdrop-blur-md shadow-lg pointer-events-auto">
           <button
@@ -377,7 +377,7 @@ export function MapView({ complaints = [], height = "520px", onPointClick }) {
       </MapContainer>
 
       {/* Floating Bottom Legend Bar */}
-      <div className="absolute bottom-3 left-3 right-3 z-[450] flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+      <div className="absolute bottom-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
         <div className="flex items-center gap-3 rounded-2xl border border-border/80 bg-card/90 px-3.5 py-1.5 backdrop-blur-md shadow-lg text-[11px] font-bold text-foreground pointer-events-auto">
           <span className="text-muted-foreground">Heat Density:</span>
           <div className="flex items-center gap-1.5">

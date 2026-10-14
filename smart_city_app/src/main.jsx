@@ -8,6 +8,7 @@ import { CoreProvider } from './context/CoreProvider';
 import { Navbar } from './components/Navbar';
 import { SiteFooter } from './components/SiteFooter';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { ScrollToTop } from './components/ScrollToTop';
 import { Agentation } from "agentation";
 
 // Import Pages
@@ -89,10 +90,9 @@ function AppContent() {
 function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <AppContent />
-      
     </BrowserRouter>
-    
   );
 }
 

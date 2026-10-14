@@ -250,7 +250,7 @@ export function LocationPicker({ location, onLocationChange, height = '340px' })
       </div>
 
       {/* Interactive Leaflet Map Container */}
-      <div className="relative rounded-2xl overflow-hidden border border-border shadow-md" style={{ height }}>
+      <div className="relative rounded-2xl overflow-hidden border border-border shadow-md isolate" style={{ height }}>
         <MapContainer
           center={[activeLat, activeLng]}
           zoom={14}
@@ -279,7 +279,7 @@ export function LocationPicker({ location, onLocationChange, height = '340px' })
         </MapContainer>
 
         {/* Floating Quick Action: "Use My GPS" Button on top of map */}
-        <div className="absolute top-3 right-3 z-[450]">
+        <div className="absolute top-3 right-3 z-30">
           <button
             type="button"
             onClick={handleLocateMe}
@@ -293,7 +293,7 @@ export function LocationPicker({ location, onLocationChange, height = '340px' })
         </div>
 
         {/* Floating Instructions Banner at bottom of map */}
-        <div className="absolute bottom-2 left-2 right-2 z-[450] pointer-events-none">
+        <div className="absolute bottom-2 left-2 right-2 z-30 pointer-events-none">
           <div className="mx-auto max-w-fit rounded-full bg-slate-900/85 px-3 py-1 text-[11px] font-medium text-white shadow-md backdrop-blur-sm flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
             <span>Click map or drag pin to select exact spot</span>
