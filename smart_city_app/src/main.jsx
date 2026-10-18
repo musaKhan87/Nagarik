@@ -9,6 +9,7 @@ import { Navbar } from './components/Navbar';
 import { SiteFooter } from './components/SiteFooter';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { ScrollToTop } from './components/ScrollToTop';
+import { InstallApp } from './components/InstallApp';
 import { Agentation } from "agentation";
 
 // Import Pages
@@ -92,6 +93,7 @@ function App() {
     <BrowserRouter>
       <ScrollToTop />
       <AppContent />
+      <InstallApp />
     </BrowserRouter>
   );
 }
